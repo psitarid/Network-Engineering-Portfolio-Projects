@@ -1,7 +1,6 @@
-HOTEL NETWORK PROJECT
+# HOTEL NETWORK PROJECT
 
-DESCRIPTION
------------
+### DESCRIPTION
 
 You are required to design and implementa a Vic Modern Hotel network. The hotel has three floors; in the first floor there are three departments(Reception, store and Logistics), in the second floor there are three departments(Finance, HR and Sales/Marketing), while the third floor hosts the IT and Admin. Therefore, the following are part of the considerations during the design and implementation.
 
