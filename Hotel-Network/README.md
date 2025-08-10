@@ -72,7 +72,36 @@ The third network is 10.10.10.8/30, so the available address range is 10.10.10.8
 
 After the address assignment on the routers, I will work on the rest of the configuration on the 3rd floor.
 
-Each floor is supposed to have WIFI network and each department should be given a printer.
+Each floor is supposed to have WIFI network for wireless devices and each department should be given a printer. I will also add a PC to every department for troubleshooting perposes and a Cisco 2960 IOS 15 switch to connect the 3rd floor's devices with each other and with the Router 3 as well.
+
+Let's now jump over to the VLAN configuration of the 3rd floor. As said before there are 2 VLANs, IT and Admin.
+
+```
+vlan 10
+name IT
+int range fa0/1, fa0/3
+switchport mode access
+switchport access vlan 10
+
+int g0/1
+switchport mode trunk
+switchport trunk allowed vlan 10,20
+
+on R3
+int g0/0/0.10
+encapsulation dot1Q 10
+ip address 192.168.1.1 255.255.255.0
+
+int g0/0/0.20
+encapsulation dot1Q 20
+ip address 192.168.2.1 255.255.255.0
+
+```
+
+
+
+
+
 
 
 
