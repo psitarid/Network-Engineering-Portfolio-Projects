@@ -31,3 +31,9 @@ You are required to design and implementa a Vic Modern Hotel network. The hotel 
 11. All the devices in the network are expected to communicate with each other.
 12. Configure SSH in all the routers for remote login.
 13. In IT department, add PC called Test-PC to port fa0/1 and use it to test remote login.
+
+### SOLUTION
+
+
+
+
