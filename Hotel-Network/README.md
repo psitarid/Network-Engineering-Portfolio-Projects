@@ -2,7 +2,7 @@
 
 ## DESCRIPTION
 
-You are required to design and implementa a Vic Modern Hotel network. The hotel has three floors; in the first floor there are three departments(Reception, store and Logistics), in the second floor there are three departments(Finance, HR and Sales/Marketing), while the third floor hosts the IT and Admin. Therefore, the following are part of the considerations during the design and implementation.
+You are required to design and implement a Vic Modern Hotel network. The hotel has three floors; in the first floor there are three departments(Reception, store and Logistics), in the second floor there are three departments(Finance, HR and Sales/Marketing), while the third floor hosts the IT and Admin. Therefore, the following are part of the considerations during the design and implementation.
 
 1. There should be three routers connecting each floor(all placed in the server room in IT department).
 2. All routers should be connected to each other using serial DCE cable.
@@ -69,5 +69,10 @@ The third network is 10.10.10.8/30, so the available address range is 10.10.10.8
 10.10.10.9 -> R1 interface Serial 0/1/1<br>
 10.10.10.10 -> R2 interface Serial 0/1/0<br>
 10.10.10.11 -> Broadcast
+
+After the address assignment on the routers, I will work on the rest of the configuration on the 3rd floor.
+
+Each floor is supposed to have WIFI network and each department should be given a printer.
+
 
 
