@@ -34,6 +34,14 @@ You are required to design and implementa a Vic Modern Hotel network. The hotel 
 
 ### SOLUTION
 
+The following image presents the whole hotel network design grouped in different floors, in a Cisco Packet Tracer schema.
+
+![Alt text](Total_Network_Diagram.png)
+
+Since requirements 1-3 refer to the 3rd floor and specifically the IT department, I will start the configuration from there.
+
+<p align="center"> <img src="3rd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
+
 
 
 
