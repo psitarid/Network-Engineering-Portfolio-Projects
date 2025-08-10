@@ -52,22 +52,22 @@ The first network is 10.10.10.0/30, which corresponds to the address range 10.10
 However, 10.10.10.0 and 10.10.10.3 need to be reserved as network and broadcast addresses respectively. So,
 - Router1 - Router3:<br>
 10.10.10.0 -> Network <br>
-10.10.10.1 -> R1 <br>
-10.10.10.2 -> R3 <br>
+10.10.10.1 -> R1 interface Serial 0/1/0<br>
+10.10.10.2 -> R3 interface Serial 0/1/0<br>
 10.10.10.3 -> Broadcast
 
 The second network is 10.10.10.4/30, so that leaves us with address range 10.10.10.4 - 10.10.10.7. So, in the same way:
 - Router2 - Router3:<br>
 10.10.10.4 -> Network <br>
-10.10.10.5 -> R3 <br>
-10.10.10.6 -> R2 <br>
+10.10.10.5 -> R3 interface Serial 0/1/1<br>
+10.10.10.6 -> R2 interface SErial 0/1/1<br>
 10.10.10.7 -> Broadcast
 
 The third network is 10.10.10.8/30, so the available address range is 10.10.10.8 - 10.10.10.11 and once again:
 - Router1 - Router2:<br>
 10.10.10.8 -> Network <br>
-10.10.10.9 -> R1 <br>
-10.10.10.10 -> R2 <br>
+10.10.10.9 -> R1 interface Serial 0/1/1<br>
+10.10.10.10 -> R2 interface Serial 0/1/0<br>
 10.10.10.11 -> Broadcast
 
 
