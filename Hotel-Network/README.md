@@ -74,18 +74,44 @@ After the address assignment on the routers, I will work on the rest of the conf
 
 Each floor is supposed to have WIFI network for wireless devices and each department should be given a printer. I will also add a PC to every department for troubleshooting perposes and a Cisco 2960 IOS 15 switch to connect the 3rd floor's devices with each other and with the Router 3 as well.
 
-Let's now jump over to the VLAN configuration of the 3rd floor. As said before there are 2 VLANs, IT and Admin.
+Let's now jump over to the VLAN configuration of the 3rd floor.
+
+On Switch3, once I get to the configuration terminal, I'll create the VLANs 10 and 20 which correspond to the IT and Admin departments respectively.
+
+ 
+```
+Switch3(config)# vlan 10
+Switch3(config-vlan)# name IT
+Switch3(config-vlan)# exit
+Switch3(config)# vlan 20
+Switch3(config-vlan)# name Admin
+Switch3(config-vlan)# exit
+```
+
+Now I need to specify the ports of each VLAN and make them access ports if they lead to end devices. 
+IT VLAN has the Test_PC and the Printer_IT on ports Fa0/1 and Fa0/3. So:
 
 ```
-vlan 10
-name IT
-int range fa0/1, fa0/3
-switchport mode access
-switchport access vlan 10
+Switch3(config)# int range fa0/1, fa0/3
+Switch3(config-if-range)# switchport mode access
+Switch3(config-if-range)# switchport access vlan 10
+Switch3(config-if-range)# exit
+```
 
+Admin VLAN has the PC_Admin and the Printer_Admin on ports Fa0/2 and Fa0/4. So:
+```
+Switch3(config)# int range fa0/2, fa0/4
+Switch3(config-if-range)# switchport mode access
+Switch3(config-if-range)# switchport access vlan 20
+Switch3(config-if-range)# exit
+```
+Requirement 10 states that all devices in the hotel network should communicate with each other. In this case I need to set up inter-vlan routing using the router-on-a-stick design to allow comunication between different VLANs. Prior to that though, I 'll enable trunking on Switch3's interface G0/1 that connects it to the Router3.
+
+```
 int g0/1
 switchport mode trunk
 switchport trunk allowed vlan 10,20
+```
 
 on R3
 int g0/0/0.10
