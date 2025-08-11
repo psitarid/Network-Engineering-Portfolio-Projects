@@ -12,19 +12,19 @@ You are required to design and implement a Vic Modern Hotel network. The hotel h
 6. Each departmente is expected to have a printer.
 7. Each department is expected to be in different VLAN with the following details:
 
-        1st Floor:
-        • Reception - VLAN 80, Network of 192.168.8.0/24
-        • Store - VLAN 70, Network of 192.168.7.0/24
-        • Logistics - VLAN 60, Network of 192.168.6.0/24
-    
-        2nd Floor:
-        • Finance - VLAN 50, Network of 192.168.5.0/24
-        • HR - VLAN 40, Network of 192.168.4.0/24
-        • Sales - VLAN 30, Network of 192.168.3.0/24
-    
-        3rd Floor:
-        • Admin - VLAN 20, Network of 192.168.2.0/24
-        • IT - VLAN 10, Network of 192.168.1.0/24
+      1st Floor:<br>
+           • Reception - VLAN 80, Network of 192.168.8.0/24<br>
+           • Store - VLAN 70, Network of 192.168.7.0/24<br>
+           • Logistics - VLAN 60, Network of 192.168.6.0/24<br>
+
+      2nd Floor:<br>
+           • Finance - VLAN 50, Network of 192.168.5.0/24<br>
+           • HR - VLAN 40, Network of 192.168.4.0/24<br>
+           • Sales - VLAN 30, Network of 192.168.3.0/24<br>
+
+      3rd Floor:<br>
+           • Admin - VLAN 20, Network of 192.168.2.0/24<br>
+           • IT - VLAN 10, Network of 192.168.1.0/24<br>
 
 9. Use OSPF as the routing protocol to advertise routes.
 10. All devices in the network are expected to obtain IP address dynamically with their respective router configured as the DHCP server.
@@ -83,6 +83,7 @@ On Switch3, once I get to the configuration terminal, I'll create the VLANs 10 a
 Switch3(config)# vlan 10
 Switch3(config-vlan)# name IT
 Switch3(config-vlan)# exit
+
 Switch3(config)# vlan 20
 Switch3(config-vlan)# name Admin
 Switch3(config-vlan)# exit
@@ -149,16 +150,43 @@ Router3(dhcp-config)# dns-server 192.168.2.1
 Router3(dhcp-config)# exit
 ```
 
-Now, using the GUI that Packet Tracer provides for Printers and PCs, I'll enable the DHCP option for the IP configuration. As we can see, Test_PC has obtained IP address 192.168.1.2, which is a valid one within the 192.168.1.9/24 address space.
+Now, using the GUI that Packet Tracer provides for Printers and PCs, I'll enable the DHCP option for the IP configuration. As we can see, Test_PC has obtained IP address 192.168.1.2, which is a valid one within the 192.168.1.0/24 address space.
 
 <p align="center"> <img src="Test_PC_DHCP_check.png" alt="Diagram" width="600"> </p>
 
 The same applies for the other end devices on the 3rd floor, except for the Smartphone3, which uses WiFi for communication. I will leave this configuration for later.
-It is also a nice practice to test the communication every now and then to make sure everything works as supposed to. So I'll try to ping Test_PC from The PC_Admin to test if the inter-vlan-routing configuration is correct.
+<br>It is also a nice practice to test the communication every now and then to make sure everything works as supposed to. So I'll try to ping Test_PC from The PC_Admin to test if the inter-vlan-routing configuration is correct.
 
 <p align="center"> <img src="Ping_Test_Admin_PC_to_Test_PC.png" alt="Diagram" width="600"> </p>
 
 Thankfully, we get a reply on the ping request. Now I can proceed in the configuration of the other floors.
 
+### 1ST FLOOR
 
+<p align="center"> <img src="1st_Floor_Diagram.png" alt="Diagram" width="600"> </p>
 
+The 1st floor is consisted of the Reception, Store and Logistics departments, each one including a printer and a PC. Also I'll place another Cisco 2960 IOS 15 switch, an access point and a smartphone as a wireless device.
+
+Once again I will create one VLAN for each department on the 1st floor.
+
+```
+Switch1(config)# vlan 80
+Switch1(config-vlan)# name Reception
+Switch1(config-vlan)# exit
+
+Switch1(config)# vlan 70
+Switch1(config-vlan)# name Store
+Switch1(config-vlan)# exit
+
+Switch1(config)# vlan 60
+Switch1(conf-vlan)# name Logistics
+Switch1(conf-vlan)# exit
+```
+
+Interfaces Fa0/1 and Fa0/4 belong to VLAN Reception, Fa0/2 and Fa0/5 to VLAN Store, Fa0/3 and Fa0/6 belong to VLAN Logistics. All of these interfaces lead to end devices so the need to be configured into access ports. 
+
+```
+Switch1(config)# int range fa0/1, fa0/4
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 80
+Switch1(config-if-range)# exit
