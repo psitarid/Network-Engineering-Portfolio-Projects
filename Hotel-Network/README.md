@@ -13,18 +13,18 @@ You are required to design and implement a Vic Modern Hotel network. The hotel h
 7. Each department is expected to be in different VLAN with the following details:
 
       1st Floor:<br>
-           • Reception - VLAN 80, Network of 192.168.8.0/24<br>
-           • Store - VLAN 70, Network of 192.168.7.0/24<br>
-           • Logistics - VLAN 60, Network of 192.168.6.0/24<br>
+           • Reception - VLAN 80 → 192.168.8.0/24<br>
+           • Store - VLAN 70 → 192.168.7.0/24<br>
+           • Logistics - VLAN 60 → 192.168.6.0/24<br>
 
       2nd Floor:<br>
-           • Finance - VLAN 50, Network of 192.168.5.0/24<br>
-           • HR - VLAN 40, Network of 192.168.4.0/24<br>
-           • Sales - VLAN 30, Network of 192.168.3.0/24<br>
+           • Finance - VLAN 50 → 192.168.5.0/24<br>
+           • HR - VLAN 40 → 192.168.4.0/24<br>
+           • Sales - VLAN 30 → 192.168.3.0/24<br>
 
       3rd Floor:<br>
-           • Admin - VLAN 20, Network of 192.168.2.0/24<br>
-           • IT - VLAN 10, Network of 192.168.1.0/24<br>
+           • Admin - VLAN 20 → 192.168.2.0/24<br>
+           • IT - VLAN 10 → 192.168.1.0/24<br>
 
 9. Use OSPF as the routing protocol to advertise routes.
 10. All devices in the network are expected to obtain IP address dynamically with their respective router configured as the DHCP server.
@@ -51,24 +51,24 @@ In the IT department I will add 3 Cisco ISR 4321 routers connected with serial D
 The first network is 10.10.10.0/30, which corresponds to the address range 10.10.10.0 - 10.10.10.3. 
 However, 10.10.10.0 and 10.10.10.3 need to be reserved as network and broadcast addresses respectively. So,
 - Router1 - Router3:<br>
-10.10.10.0 -> Network <br>
-10.10.10.1 -> R1 interface Serial 0/1/0<br>
-10.10.10.2 -> R3 interface Serial 0/1/0<br>
-10.10.10.3 -> Broadcast
+10.10.10.0 → Network <br>
+10.10.10.1 → R1 interface Serial 0/1/0<br>
+10.10.10.2 → R3 interface Serial 0/1/0<br>
+10.10.10.3 → Broadcast
 
 The second network is 10.10.10.4/30, so that leaves us with address range 10.10.10.4 - 10.10.10.7. So, in the same way:
 - Router2 - Router3:<br>
-10.10.10.4 -> Network <br>
-10.10.10.5 -> R3 interface Serial 0/1/1<br>
-10.10.10.6 -> R2 interface SErial 0/1/1<br>
-10.10.10.7 -> Broadcast
+10.10.10.4 → Network <br>
+10.10.10.5 → R3 interface Serial 0/1/1<br>
+10.10.10.6 → R2 interface SErial 0/1/1<br>
+10.10.10.7 → Broadcast
 
 The third network is 10.10.10.8/30, so the available address range is 10.10.10.8 - 10.10.10.11 and once again:
 - Router1 - Router2:<br>
-10.10.10.8 -> Network <br>
-10.10.10.9 -> R1 interface Serial 0/1/1<br>
-10.10.10.10 -> R2 interface Serial 0/1/0<br>
-10.10.10.11 -> Broadcast
+10.10.10.8 → Network <br>
+10.10.10.9 → R1 interface Serial 0/1/1<br>
+10.10.10.10 → R2 interface Serial 0/1/0<br>
+10.10.10.11 → Broadcast
 
 After the address assignment on the routers, I will work on the rest of the configuration on the 3rd floor.
 
@@ -273,4 +273,107 @@ Also, we can see that connection is established between the different VLANS sinc
 
 <p align="center"> <img src="Ping_Test_PC_Store_to_PC_Reception.png" alt="Diagram" width="600"> </p>
 
+### 2ND FLOOR
+
+<p align="center"> <img src="2nd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
+
+This floor has the same elements and configuration as 1st floor with VLANs Finance, HR and Sales. I will proceed right to the configuration of the VLANs on Switch2.
+
+```
+Switch2(config)# vlan 50
+Switch2(config-vlan)# name Finance
+Switch2(config-vlan)# exit
+```
+```
+Switch2(config)# vlan 40
+Switch2(config-vlan)# name HR
+Switch2(config-vlan)# exit
+```
+```
+Switch2(config)# vlan 30
+Switch2(conf-vlan)# name Sales
+Switch2(conf-vlan)# exit
+```
+Let's enable access mode on the interfaces that lead to end-points. Fa0/1 and Fa0/5 belong to VLAN Finance, Fa0/2 and Fa0/6 to VLAN HR, Fa0/3 and Fa0/4 belong to VLAN Sales.
+
+```
+Switch1(config)# int range fa0/1, fa0/5
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 50
+Switch1(config-if-range)# exit
+```
+```
+Switch1(config)# int range fa0/2, fa0/6
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 40
+Switch1(config-if-range)# exit
+```
+```
+Switch1(config)# int range fa0/3, fa0/4
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 30
+Switch1(config-if-range)# exit
+```
+Once again, interface G0/1 connects the Switch2 to the Router2 and it needs to be in trunk mode.
+
+```
+int g0/1
+switchport mode trunk
+switchport trunk allowed vlan 30,40,50
+```
+
+Let's finish the VLAN configurations with the router-on-a-stick and the DHCP pools on the Router2 in the same way as in 1st floor.
+
+```
+Router2(config)# int g0/0/0.30
+Router2(config-subif)# encapsulation dot1Q 30
+Router2(config-subif)# ip address 192.168.3.1 255.255.255.0
+Router2(config-subif)# exit
+```
+```
+Router2(config)# int g0/0/0.40
+Router2(config-subif)# encapsulation dot1Q 40
+Router2(config-subif)# ip address 192.168.4.1 255.255.255.0
+Router2(config-subif)# exit
+```
+```
+Router2(config)# int g0/0/0.50
+Router2(config-subif)# encapsulation dot1Q 50
+Router2(config-subif)# ip address 192.168.5.1 255.255.255.0
+Router2(config-subif)# exit
+```
+Now that all VLAN of the 1st floor are set I need to configure the ip addresses, the default-gateways and the dns-servers.<br>
+Like 3rd floor I will create a dhcp pool for each one of the VLANs.
+
+For the Reception VLAN:
+```
+Router2(config)# ip dhcp pool Sales
+Router2(dhcp-config)# network 192.168.8.0 255.255.255.0
+Router2(dhcp-config)# default-router 192.168.3.1
+Router2(dhcp-config)# dns-server 192.168.3.1
+Router2(dhcp-config)# exit
+```
+
+For the Store VLAN:
+```
+Router2(config)# ip dhcp pool HR
+Router2(dhcp-config)# network 192.168.4.0 255.255.255.0
+Router2(dhcp-config)# default-router 192.168.4.1
+Router2(dhcp-config)# dns-server 192.168.4.1
+Router2(dhcp-config)# exit
+```
+For the Logistics VLAN:
+```
+Router2(config)# ip dhcp pool Finance
+Router2(dhcp-config)# network 192.168.5.0 255.255.255.0
+Router2(dhcp-config)# default-router 192.168.5.1
+Router2(dhcp-config)# dns-server 192.168.5.1
+Router2(dhcp-config)# exit
+```
+Checking the DHCP IP configuration of the PC_Finance through the Packet Tracer GUI, I notice that it gets IP address of 192.168.5.3, which is a valid option within the address space 192.168.5.0/24.
+So DHCP works fine.
+
+A ping test is also required to ensure communication between the 2nd floor VLANs. So, I will ping PC_Finance from PC_Sales.
+
+The results show that a reply is indeed received on the PC_Sales teminal. So inter-vlan-routing works.
 
