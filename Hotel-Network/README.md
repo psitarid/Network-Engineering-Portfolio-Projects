@@ -234,3 +234,41 @@ Router1(config-subif)# encapsulation dot1Q 80
 Router1(config-subif)# ip address 192.168.8.1 255.255.255.0
 Router1(config-subif)# exit
 ```
+Now that all VLAN of the 1st floor are set I need to configure the ip addresses, the default-gateways and the dns-servers.<br>
+Like 3rd floor I will create a dhcp pool for each one of the VLANs.
+
+For the Reception VLAN:
+```
+Router1(config)# ip dhcp pool Reception
+Router1(dhcp-config)# network 192.168.8.0 255.255.255.0
+Router1(dhcp-config)# default-router 192.168.8.1
+Router1(dhcp-config)# dns-server 192.168.8.1
+Router1(dhcp-config)# exit
+```
+
+For the Store VLAN:
+```
+Router1(config)# ip dhcp pool Store
+Router1(dhcp-config)# network 192.168.7.0 255.255.255.0
+Router1(dhcp-config)# default-router 192.168.7.1
+Router1(dhcp-config)# dns-server 192.168.7.1
+Router1(dhcp-config)# exit
+```
+For the Logistics VLAN:
+```
+Router1(config)# ip dhcp pool Logistics
+Router1(dhcp-config)# network 192.168.6.0 255.255.255.0
+Router1(dhcp-config)# default-router 192.168.6.1
+Router1(dhcp-config)# dns-server 192.168.6.1
+Router1(dhcp-config)# exit
+```
+
+Let's check the DHCP IP configuration and the communication between devices within the first floor.
+
+Throuth the GUI we can see that PC_Reception has an IP addres of 192.168.8.3 which is a valid option within the 192.168.8.0/24 address space.
+
+<p align="center"> <img src="PC_Reception_DHCP_check.png" alt="Diagram" width="600"> </p>
+
+Also, connection is established between the different VLANS as shown by pinging PC_Reception from PC_Store.
+
+<p align="center"> <img src="Ping_Test_PC_Store_to_PC_Reception.png" alt="Diagram" width="600"> </p>
