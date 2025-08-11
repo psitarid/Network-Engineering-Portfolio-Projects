@@ -12,17 +12,17 @@ You are required to design and implement a Vic Modern Hotel network. The hotel h
 6. Each departmente is expected to have a printer.
 7. Each department is expected to be in different VLAN with the following details:
 
-        1st Floor;
+        1st Floor:
         • Reception - VLAN 80, Network of 192.168.8.0/24
         • Store - VLAN 70, Network of 192.168.7.0/24
         • Logistics - VLAN 60, Network of 192.168.6.0/24
     
-        2nd Floor;
+        2nd Floor:
         • Finance - VLAN 50, Network of 192.168.5.0/24
         • HR - VLAN 40, Network of 192.168.4.0/24
         • Sales - VLAN 30, Network of 192.168.3.0/24
     
-        3rd Floor;
+        3rd Floor:
         • Admin - VLAN 20, Network of 192.168.2.0/24
         • IT - VLAN 10, Network of 192.168.1.0/24
 
@@ -113,18 +113,41 @@ switchport mode trunk
 switchport trunk allowed vlan 10,20
 ```
 
-on R3
-int g0/0/0.10
-encapsulation dot1Q 10
-ip address 192.168.1.1 255.255.255.0
-
-int g0/0/0.20
-encapsulation dot1Q 20
-ip address 192.168.2.1 255.255.255.0
+Now on Router3 I'll configure router-on-a-stick design, using encapsulation, in order to split the interface G0/0/0 and create 2 different virtual gateway addresses, one for each VLAN.
+For all VLANs, I will be setting the first available address, after the network, to be the virtual gateway.
 
 ```
+Router3(config)# int g0/0/0.10
+Router3(config-subif)# encapsulation dot1Q 10
+Router3(config-subif)# ip address 192.168.1.1 255.255.255.0
+Router3(config-subif)# exit
+```
+```
+Router3(config)# int g0/0/0.20
+Router3(config-subif)# encapsulation dot1Q 20
+Router3(config-subif)# ip address 192.168.2.1 255.255.255.0
+Router3(config-subif)# exit
+```
 
+3rd floor VLAN configuration is almost ready, however without ip addresses, no communication is going to work. Requirement 9 states that all devices are supposed to get IP addresses dynamically, using DHCP. In this case, I will set the routers to be the DHCP servers. On Router3 I'll create one DHCP pool for each VLAN, then I'll specify the default gateway and the dns server of each pool.
 
+For the VLAN IT:
+```
+Router3(config)# ip dhcp pool IT
+Router3(dhcp-config)# network 192.168.1.0 255.255.255.0
+Router3(dhcp-config)# default-router 192.168.1.1
+Router3(dhcp-config)# dns-server 192.168.1.1
+Router3(dhcp-config)# exit
+```
+
+For the VLAN Admin:
+```
+Router3(config)# ip dhcp pool Admin
+Router3(dhcp-config)# network 192.168.2.0 255.255.255.0
+Router3(dhcp-config)# default-router 192.168.2.1
+Router3(dhcp-config)# dns-server 192.168.2.1
+Router3(dhcp-config)# exit
+```
 
 
 
