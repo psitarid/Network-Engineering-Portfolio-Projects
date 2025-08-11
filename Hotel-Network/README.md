@@ -131,7 +131,7 @@ Router3(config-subif)# exit
 
 3rd floor VLAN configuration is almost ready, however without ip addresses, no communication is going to work. Requirement 9 states that all devices are supposed to get IP addresses dynamically, using DHCP. In this case, I will set the routers to be the DHCP servers. On Router3 I'll create one DHCP pool for each VLAN, then I'll specify the default gateway and the dns server of each pool.
 
-For the VLAN IT:
+For the IT VLAN:
 ```
 Router3(config)# ip dhcp pool IT
 Router3(dhcp-config)# network 192.168.1.0 255.255.255.0
@@ -140,7 +140,7 @@ Router3(dhcp-config)# dns-server 192.168.1.1
 Router3(dhcp-config)# exit
 ```
 
-For the VLAN Admin:
+For the Admin VLAN:
 ```
 Router3(config)# ip dhcp pool Admin
 Router3(dhcp-config)# network 192.168.2.0 255.255.255.0
@@ -149,8 +149,16 @@ Router3(dhcp-config)# dns-server 192.168.2.1
 Router3(dhcp-config)# exit
 ```
 
+Now, using the GUI that Packet Tracer provides for Printers and PCs, I'll enable the DHCP option for the IP configuration. As we can see, Test_PC has obtained IP address 192.168.1.2, which is a valid one within the 192.168.1.9/24 address space.
 
+<p align="center"> <img src="Test_PC_DHCP_check.png" alt="Diagram" width="600"> </p>
 
+The same applies for the other end devices on the 3rd floor, except for the Smartphone3, which uses WiFi for communication. I will leave this configuration for later.
+It is also a nice practice to test the communication every now and then to make sure everything works as supposed to. So I'll try to ping Test_PC from The PC_Admin to test if the inter-vlan-routing configuration is correct.
+
+<p align="center"> <img src="Ping_Test_Admin_PC_to_Test_PC.png" alt="Diagram" width="600"> </p>
+
+Thankfully, we get a reply on the ping request. Now I can proceed in the configuration of the other floors.
 
 
 
