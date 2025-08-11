@@ -373,7 +373,12 @@ Router2(dhcp-config)# exit
 Checking the DHCP IP configuration of the PC_Finance through the Packet Tracer GUI, I notice that it gets IP address of 192.168.5.3, which is a valid option within the address space 192.168.5.0/24.
 So DHCP works fine.
 
+<p align="center"> <img src="PC_Finance_DHCP_check.png" alt="Diagram" width="600"> </p>
+
 A ping test is also required to ensure communication between the 2nd floor VLANs. So, I will ping PC_Finance from PC_Sales.
 
+<p align="center"> <img src="Ping_Test_PC_Sales_to_PC_Finance.png" alt="Diagram" width="600"> </p>
+
 The results show that a reply is indeed received on the PC_Sales teminal. So inter-vlan-routing works.
+
 
