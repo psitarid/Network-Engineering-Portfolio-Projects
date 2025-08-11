@@ -269,6 +269,8 @@ Throuth the GUI we can see that PC_Reception has an IP addres of 192.168.8.3 whi
 
 <p align="center"> <img src="PC_Reception_DHCP_check.png" alt="Diagram" width="600"> </p>
 
-Also, connection is established between the different VLANS as shown by pinging PC_Reception from PC_Store.
+Also, we can see that connection is established between the different VLANS since PC_Store gets a reply when pinging PC_Reception.
 
 <p align="center"> <img src="Ping_Test_PC_Store_to_PC_Reception.png" alt="Diagram" width="600"> </p>
+
+
