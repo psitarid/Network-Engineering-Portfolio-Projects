@@ -193,3 +193,44 @@ Switch1(config)# int range fa0/1, fa0/4
 Switch1(config-if-range)# switchport mode access
 Switch1(config-if-range)# switchport access vlan 80
 Switch1(config-if-range)# exit
+```
+```
+Switch1(config)# int range fa0/2, fa0/5
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 70
+Switch1(config-if-range)# exit
+```
+```
+Switch1(config)# int range fa0/3, fa0/6
+Switch1(config-if-range)# switchport mode access
+Switch1(config-if-range)# switchport access vlan 60
+Switch1(config-if-range)# exit
+```
+G0/1 interface connects Switch1 with Router1, and it needs to be set in trunk mode in order to serve all 3 VLANs of the 1st floor.
+
+```
+int g0/1
+switchport mode trunk
+switchport trunk allowed vlan 60,70,80
+```
+
+I will now configure the router-on-a-stick design for the Router1.
+
+```
+Router1(config)# int g0/0/0.60
+Router1(config-subif)# encapsulation dot1Q 60
+Router1(config-subif)# ip address 192.168.6.1 255.255.255.0
+Router1(config-subif)# exit
+```
+```
+Router1(config)# int g0/0/0.70
+Router1(config-subif)# encapsulation dot1Q 70
+Router1(config-subif)# ip address 192.168.7.1 255.255.255.0
+Router1(config-subif)# exit
+```
+```
+Router1(config)# int g0/0/0.80
+Router1(config-subif)# encapsulation dot1Q 80
+Router1(config-subif)# ip address 192.168.8.1 255.255.255.0
+Router1(config-subif)# exit
+```
