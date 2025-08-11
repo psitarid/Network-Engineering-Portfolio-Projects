@@ -83,7 +83,8 @@ On Switch3, once I get to the configuration terminal, I'll create the VLANs 10 a
 Switch3(config)# vlan 10
 Switch3(config-vlan)# name IT
 Switch3(config-vlan)# exit
-
+```
+```
 Switch3(config)# vlan 20
 Switch3(config-vlan)# name Admin
 Switch3(config-vlan)# exit
@@ -173,11 +174,13 @@ Once again I will create one VLAN for each department on the 1st floor.
 Switch1(config)# vlan 80
 Switch1(config-vlan)# name Reception
 Switch1(config-vlan)# exit
-
+```
+```
 Switch1(config)# vlan 70
 Switch1(config-vlan)# name Store
 Switch1(config-vlan)# exit
-
+```
+```
 Switch1(config)# vlan 60
 Switch1(conf-vlan)# name Logistics
 Switch1(conf-vlan)# exit
