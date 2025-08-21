@@ -50,7 +50,7 @@ int main() {
     struct sockaddr_in connection_address;                                                       // create connection address
 
     struct sockaddr_in listening_address;                                                        // create listening address
-    char listening_ip[] = "111.111.111.111";                                                     
+    char listening_ip[] = "192.168.1.6";                                                     
     char address_type[] = "IPv4";
     int listening_port = 9002;
     
