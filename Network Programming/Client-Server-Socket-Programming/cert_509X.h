@@ -134,29 +134,26 @@ void set_cert_names(X509 *cert) {
 
     }
 
-    printf("Set certificate Country using 2 letters(e.g. GR): ");                                    // prompt for country
+    printf("  Set certificate Country using 2 letters(e.g. GR): ");                                    // prompt for country
     if (scanf("%99s", country) != 1) {
         fprintf(stderr, "Failed to read country input\n");
         X509_NAME_free(name);
         return;
     }
-    printf("%s\n", country);
     
-    printf("Set certificate Organization: ");
+    printf("  Set certificate Organization: ");
     if (scanf("%99s", org) != 1) {
         fprintf(stderr, "Failed to read organization input\n");
         X509_NAME_free(name);
         return;
     }
-    printf("%s\n", org);
 
-    printf("Set certificate Common Name: ");                                // prompt for common name
+    printf("  Set certificate Common Name: ");                                // prompt for common name
     if (scanf("%99s", cn) != 1) {
         fprintf(stderr, "Failed to read common name input\n");
         X509_NAME_free(name);
         return;
     }
-    printf("%s\n", cn);
     
     // Add entries to the name
     int name_status = X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char *)country, -1, -1, 0);         // 1 for successs, 0 for error
@@ -191,7 +188,6 @@ void set_cert_names(X509 *cert) {
     }
 
     X509_NAME_free(name);
-    printf("Certificate names set successfully\n");  // Add success confirmation
 }
 
 // Modified output_cert function using BIO
@@ -208,7 +204,7 @@ void output_cert(char *filename, X509 *cert) {
     if (!result) {
         fprintf(stderr, "Failed to write certificate to file\n");
     } else {
-        printf("Certificate written to %s successfully.\n", filename);
+        printf("\n- Certificate written to %s successfully.\n", filename);
     }
 }
 
@@ -226,7 +222,7 @@ void output_private_key(char *filename, EVP_PKEY *pkey) {
     if (!result) {
         fprintf(stderr, "Failed to write private key to file\n");
     } else {
-        printf("Private key written to %s successfully.\n", filename);
+        printf("- Private key written to %s successfully.\n", filename);
     }
 }
 
