@@ -4,6 +4,12 @@
 #include <winsock2.h>
 #include "tcp_server.h"
 #include "common.h"
+#include "cert_509X.h"
+#include <openssl/x509.h>    // X.509 certificate structures and functions
+#include <openssl/pem.h>      // PEM format encoding/decoding
+#include <openssl/rsa.h>     // RSA key generation and operations
+#include <openssl/evp.h>     // High-level cryptographic functions
+#include <openssl/bn.h>      // Big number arithmetic
 
 #pragma comment(lib, "ws2_32.lib")                                                          // link with Winsock library
 
@@ -19,8 +25,24 @@
  * accepting connections, and sending/receiving data.
  */
 
+
+
 int main() {
     
+
+// PHASE 1: Key Generation and Certificate Creation
+    EVP_PKEY *server_key = rsa_key_gen();                                                        // RSA key generation
+    
+    X509 *server_cert = X509_new();                                                              // create server certificate
+    set_cert_version_and_serial(server_cert);                                                   // set certificate version and serial number
+    set_cert_names(server_cert);                                                                // set certificate details
+    X509_set_pubkey(server_cert, server_key);                                                    // assign server public key to the certificate
+    X509_sign(server_cert, server_key, EVP_sha256());                                            // sign the server certificate
+
+    output_cert("server_cert.pem", server_cert);                                                 // output the server certificate to a file
+    output_private_key("server_key.pem", server_key);                                            // output the server private key to a file
+
+// PHASE 2: COMMUNICATION WITH CLIENT
     WSADATA wsa;
     winsock_init(&wsa);                                                                          // initialize winsock and check for errors
 
@@ -28,7 +50,7 @@ int main() {
     struct sockaddr_in connection_address;                                                       // create connection address
 
     struct sockaddr_in listening_address;                                                        // create listening address
-    char listening_ip[] = "192.168.178.124";
+    char listening_ip[] = "192.168.1.6";
     char address_type[] = "IPv4";
     int listening_port = 9002;
     
@@ -52,6 +74,8 @@ int main() {
 
     closesocket(listening_socket);                                                               // close the listening socket
     WSACleanup();
+    X509_free(server_cert);                                                                      // free the server certificate
+    EVP_PKEY_free(server_key);                                                                   // free the server private key
 
     return 0;
 }
