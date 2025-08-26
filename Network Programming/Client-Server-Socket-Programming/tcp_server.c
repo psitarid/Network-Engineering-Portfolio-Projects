@@ -4,14 +4,15 @@
 #include <winsock2.h>
 #include "tcp_server.h"
 #include "common.h"
-#include "cert_509X.h"
+#include "cert_X509_pem.h"
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
 #include <openssl/evp.h>     // High-level cryptographic functions
 #include <openssl/bn.h>      // Big number arithmetic
+#include <openssl/err.h>     // Error handling
 
-#pragma comment(lib, "ws2_32.lib")                                                          // link with Winsock library
+#pragma comment(lib, "ws2_32.lib")                                                               // link with Winsock library
 
 #define BUFFER_SIZE 1024
 
@@ -28,20 +29,41 @@
 
 
 int main() {
+
+
+    // PHASE 1: Key Generation and Certificate Creation
+
+    EVP_PKEY *server_key;
+    X509 *server_cert;
+    int cert_validity = 0;
+
+    if (check_cert_exists("server_cert.pem") == 1) {                                             // check if server certificate already exists
+        printf("Certification file exists. Loading existing certificate and key...\n");
+        server_cert = load_certificate("server_cert.pem");                                       // load existing server certificate
+        server_key = load_private_key("server_key.pem");                                         // load existing server private key
+        cert_validity = check_cert_validity(server_cert);                                        // check certificate validity
+    }
+    else {
+        printf("Certification file does not exist.\n");
+    }
     
+    if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
+        printf("Creating new server certificate and key...\n");
+        server_key = rsa_key_gen();                                                              // RSA key generation
+        server_cert = X509_new();                                                          // create server certificate
+        set_cert_version_and_serial(server_cert);                                                // set certificate version and serial number
+        set_cert_validity(server_cert);
+        set_cert_names(server_cert);                                                             // set certificate details
+        X509_set_pubkey(server_cert, server_key);                                                // assign server public key to the certificate
+        X509_sign(server_cert, server_key, EVP_sha256());                                        // sign the server certificate
 
-// PHASE 1: Key Generation and Certificate Creation
-    EVP_PKEY *server_key = rsa_key_gen();                                                        // RSA key generation
+        output_cert("server_cert.pem", server_cert);                                             // output the server certificate to a file
+        output_private_key("server_key.pem", server_key);                                        // output the server private key to a file
+    }
+    else{
+        printf("Existing certificate is valid.\n");
+    }
     
-    X509 *server_cert = X509_new();                                                              // create server certificate
-    set_cert_version_and_serial(server_cert);                                                   // set certificate version and serial number
-    set_cert_names(server_cert);                                                                // set certificate details
-    X509_set_pubkey(server_cert, server_key);                                                    // assign server public key to the certificate
-    X509_sign(server_cert, server_key, EVP_sha256());                                            // sign the server certificate
-
-    output_cert("server_cert.pem", server_cert);                                                 // output the server certificate to a file
-    output_private_key("server_key.pem", server_key);                                            // output the server private key to a file
-
 // PHASE 2: COMMUNICATION WITH CLIENT
     WSADATA wsa;
     winsock_init(&wsa);                                                                          // initialize winsock and check for errors
@@ -50,7 +72,11 @@ int main() {
     struct sockaddr_in connection_address;                                                       // create connection address
 
     struct sockaddr_in listening_address;                                                        // create listening address
+<<<<<<< HEAD
     char listening_ip[] = "192.168.1.6";
+=======
+    char listening_ip[] = "192.168.1.6";                                                     
+>>>>>>> 7e29bbf6043319a32ea6f4741a4e3505fa05233e
     char address_type[] = "IPv4";
     int listening_port = 9002;
     
@@ -78,4 +104,5 @@ int main() {
     EVP_PKEY_free(server_key);                                                                   // free the server private key
 
     return 0;
+
 }

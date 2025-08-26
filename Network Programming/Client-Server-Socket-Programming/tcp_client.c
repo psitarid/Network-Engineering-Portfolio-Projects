@@ -4,8 +4,8 @@
 #include <winsock2.h>
 #include "tcp_server.h"
 #include "common.h"
-#include "cert_509X.h"
 #include "tcp_client.h"
+#include "cert_x509_pem.h"
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
@@ -23,17 +23,41 @@ int main(int argc, char *argv[]) {                                              
         return 1;
     }
 
-    // PHASE 1: Key Generation and Certificate Creation
-    EVP_PKEY *client_key = rsa_key_gen();                                                        // RSA key generation
-    
-    X509 *client_cert = X509_new();                                                              // create server certificate
-    set_cert_version_and_serial(client_cert);                                                   // set certificate version and serial number
-    set_cert_names(client_cert);                                                                // set certificate details
-    X509_set_pubkey(client_cert, client_key);                                                    // assign server public key to the certificate
-    X509_sign(client_cert, client_key, EVP_sha256());                                            // sign the server certificate
 
-    output_cert("client_cert.pem", client_cert);                                                 // output the client certificate to a file
-    output_private_key("client_key.pem", client_key);
+    // PHASE 1: Key Generation and Certificate Creation
+
+
+    EVP_PKEY *client_key;
+    X509 *client_cert;
+    int cert_validity = 0;
+
+    if (check_cert_exists("client_cert.pem") == 1) {                                             // check if client certificate already exists
+        printf("Certification file exists. Loading existing certificate and key...\n");
+        client_cert = load_certificate("client_cert.pem");                                       // load existing client certificate
+        client_key = load_private_key("client_key.pem");                                         // load existing client private key
+        cert_validity = check_cert_validity(client_cert);                                        // check certificate validity
+    }
+    else {
+        printf("Certification file does not exist.\n");
+    }
+
+    if ((cert_validity == 0)) {                                                                    // if certificate does not exist or is invalid, create a new one along with keys.
+        printf("Creating new client certificate and key...\n");
+        client_key = rsa_key_gen();                                                              // RSA key generation
+        client_cert = X509_new();                                                                // create client certificate
+        set_cert_version_and_serial(client_cert);                                                // set certificate version and serial number
+        set_cert_validity(client_cert);
+        set_cert_names(client_cert);                                                             // set certificate details
+        X509_set_pubkey(client_cert, client_key);                                                // assign client public key to the certificate
+        X509_sign(client_cert, client_key, EVP_sha256());                                        // sign the client certificate
+
+        output_cert("client_cert.pem", client_cert);                                             // output the client certificate to a file
+        output_private_key("client_key.pem", client_key);                                        // output the client private key to a file
+    }
+    else{
+        printf("Existing certificate is valid.\n");
+    }
+
 
     // PHASE 2: Communication with the Server
     WSADATA wsa;

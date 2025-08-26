@@ -7,7 +7,101 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <openssl/bn.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <errno.h>
+#include <openssl/err.h>
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Check file existence
+int check_cert_exists(const char *filename){
+    struct stat buffer;
+    return (stat(filename, &buffer) == 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function to load certificate from file
+X509* load_certificate(const char *filename) {
+   BIO *bio = BIO_new_file(filename, "r");
+    if (!bio) {
+        fprintf(stderr, "Failed to open certificate file: %s\n", filename, strerror(errno));
+        ERR_print_errors_fp(stderr);    // print OpenSSL errors too
+        return NULL;
+    }
+
+    X509 *cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+    if (!cert) {
+        fprintf(stderr, "PEM_read_bio_X509 failed for '%s'\n", filename);
+        ERR_print_errors_fp(stderr);
+    }
+    
+    BIO_free(bio);
+    return cert;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Function to load private key from file
+EVP_PKEY* load_private_key(const char *filename) {
+    BIO *bio = BIO_new_file(filename, "r");
+    if (!bio) {
+        fprintf(stderr, "Failed to open private key file: %s\n", filename);
+        return NULL;
+    }
+    else{
+        printf("Successfully loaded private key file: %s\n", filename);
+        
+    }
+
+    EVP_PKEY *pkey = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+    BIO_free(bio);
+    
+    return pkey;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Function to check certificate validity
+int check_cert_validity(X509 *cert){
+
+    if (!cert) {                                                             // Check if certificate is NULL
+        fprintf(stderr, "Certificate is NULL.\n");
+        return 1;
+    }
+    
+    time_t now = time(NULL);                                                 // get current time
+
+    if (X509_cmp_time(X509_get0_notBefore(cert), &now) > 0) {                // check certificate starting date
+        printf("Certificate is not yet valid.\n");
+        return 0;
+    }
+    
+    if (X509_cmp_time(X509_get0_notAfter(cert), &now) < 0) {                 // check certificate expiring date
+        printf("Certificate has expired.\n");
+        return 0;
+    }
+    
+    EVP_PKEY *pkey = X509_get_pubkey(cert);                                  // verify certificate signature (self-signed)
+    if (!pkey) {
+        printf("Failed to extract public key from certificate.\n");
+        return 0;
+    }
+    
+    int verify_sign_result = X509_verify(cert, pkey);                             // verify the certificate signature
+    EVP_PKEY_free(pkey);
+    
+    if (verify_sign_result != 1) {
+        printf("Certificate signature verification failed.\n");
+        return 0;
+    }
+    
+    printf("Certificate is valid.\n");
+    return 1;
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // RSA Key Generation
 EVP_PKEY* rsa_key_gen() {
@@ -43,6 +137,7 @@ EVP_PKEY* rsa_key_gen() {
     return pkey;                                                            // Return the EVP_PKEY structure containing the RSA key pair
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set version and serial number
 void set_cert_version_and_serial(X509 *cert) {
@@ -75,6 +170,8 @@ void set_cert_version_and_serial(X509 *cert) {
         fprintf(stderr, "Failed to set certificate version and serial number\n");
     }                                                                  
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Validity Period
 void set_cert_validity(X509 *cert) {
@@ -112,14 +209,15 @@ void set_cert_validity(X509 *cert) {
         error = 0;
     }
 
-    // free the ASN1_TIME structures
-    ASN1_TIME_free(not_before);
+    ASN1_TIME_free(not_before);                                             // free the ASN1_TIME structures
     ASN1_TIME_free(not_after);
 
     if (error == 0) {
         fprintf(stderr, "Failed to set certificate validity period\n");
     }
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void set_cert_names(X509 *cert) {
     X509_NAME *name = X509_NAME_new();                                      // create a new X509_NAME structure            
@@ -134,26 +232,28 @@ void set_cert_names(X509 *cert) {
 
     }
 
-    printf("  Set certificate Country using 2 letters(e.g. GR): ");                                    // prompt for country
+    printf("  Set certificate Country using 2 letters(e.g. GR): ");         // prompt for country
     if (scanf("%99s", country) != 1) {
         fprintf(stderr, "Failed to read country input\n");
         X509_NAME_free(name);
         return;
     }
     
-    printf("  Set certificate Organization: ");
+    printf("  Set certificate Organization: ");                             // prompt for organization
     if (scanf("%99s", org) != 1) {
         fprintf(stderr, "Failed to read organization input\n");
         X509_NAME_free(name);
         return;
     }
 
-    printf("  Set certificate Common Name: ");                                // prompt for common name
+    printf("  Set certificate Common Name: ");                              // prompt for common name
     if (scanf("%99s", cn) != 1) {
         fprintf(stderr, "Failed to read common name input\n");
         X509_NAME_free(name);
         return;
     }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////    
     
     // Add entries to the name
     int name_status = X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char *)country, -1, -1, 0);         // 1 for successs, 0 for error
@@ -190,6 +290,8 @@ void set_cert_names(X509 *cert) {
     X509_NAME_free(name);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Modified output_cert function using BIO
 void output_cert(char *filename, X509 *cert) {
     BIO *bio = BIO_new_file(filename, "w");
@@ -208,6 +310,8 @@ void output_cert(char *filename, X509 *cert) {
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Modified output_private_key function using BIO
 void output_private_key(char *filename, EVP_PKEY *pkey) {
     BIO *bio = BIO_new_file(filename, "w");
@@ -225,43 +329,3 @@ void output_private_key(char *filename, EVP_PKEY *pkey) {
         printf("- Private key written to %s successfully.\n", filename);
     }
 }
-
-
-// // output the cert info to a file
-// void output_cert(char *filename, X509 *cert) {
-    
-//     FILE *fp = fopen(filename, "wb");
-//     if (fp == NULL) {
-//         perror("Unable to open file for writing");
-//     }
-//     int output_result = PEM_write_X509(fp, cert);  // Write the certificate in PEM format
-//     fclose(fp);
-    
-//     if(!output_result){
-//         fprintf(stderr, "Failed to write certificate to file\n");  // check for errors in writing the certificate
-//     } 
-    
-//     else {
-//         printf("Certificate written to %s successfully.\n", filename);
-//     }
-
-// }
-
-// // output the private key to a file
-// void output_private_key(char *filename, EVP_PKEY *pkey) {
-//     FILE *fp = fopen(filename, "wb");
-//     if (fp == NULL) {
-//         perror("Unable to open file for writing the key");
-//     }
-
-//     int result = PEM_write_PrivateKey(fp, pkey, NULL, NULL, 0, NULL, NULL);
-//     fclose(fp);
-
-//     if(!result) {
-//         fprintf(stderr, "Failed to write private key to file\n");
-//     }
-//     else {
-//         printf("Private key written to %s successfully.\n", filename);
-//     }
-// }
-
