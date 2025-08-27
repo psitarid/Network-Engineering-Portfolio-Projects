@@ -37,13 +37,13 @@ You are required to design and implement a Vic Modern Hotel network. The hotel h
 
 The following image presents the whole hotel network design grouped in different floors, in a Cisco Packet Tracer schema.
 
-![Alt text](Total_Network_Diagram.png)
+![Alt text](Images/Total_Network_Diagram.png)
 
 Since requirements 1-3 refer to the 3rd floor and specifically the IT department, I will start the configuration from there.
 
 ### 3RD FLOOR
 
-<p align="center"> <img src="3rd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/3rd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
 
 The 3rd Floor is consisted of the IT and the Admin departments.
 In the IT department I will add 3 Cisco ISR 4321 routers connected with serial DCE cables to meet the requirements 1 and 2. On the 3rd requirement I am given 3 networks to use between the routers.
@@ -153,18 +153,18 @@ Router3(dhcp-config)# exit
 
 Now, using the GUI that Packet Tracer provides for Printers and PCs, I'll enable the DHCP option for the IP configuration. As we can see, Test_PC has obtained IP address 192.168.1.2, which is a valid one within the 192.168.1.0/24 address space.
 
-<p align="center"> <img src="Test_PC_DHCP_check.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/Test_PC_DHCP_check.png" alt="Diagram" width="600"> </p>
 
 The same applies for the other end devices on the 3rd floor, except for the Smartphone3, which uses WiFi for communication. I will leave this configuration for later.
 <br>It is also a nice practice to test the communication every now and then to make sure everything works as supposed to. So I'll try to ping Test_PC from The PC_Admin to test if the inter-vlan-routing configuration is correct.
 
-<p align="center"> <img src="Ping_Test_Admin_PC_to_Test_PC.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/Ping_Test_Admin_PC_to_Test_PC.png" alt="Diagram" width="600"> </p>
 
 Thankfully, we get a reply on the ping request. Now I can proceed in the configuration of the other floors.
 
 ### 1ST FLOOR
 
-<p align="center"> <img src="1st_Floor_Diagram.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/1st_Floor_Diagram.png" alt="Diagram" width="600"> </p>
 
 The 1st floor is consisted of the Reception, Store and Logistics departments, each one including a printer and a PC. Also I'll place another Cisco 2960 IOS 15 switch, an access point and a smartphone as a wireless device.
 
@@ -267,15 +267,15 @@ Let's check the DHCP IP configuration and the communication between devices with
 
 Throuth the GUI we can see that PC_Reception has an IP addres of 192.168.8.3 which is a valid option within the 192.168.8.0/24 address space.
 
-<p align="center"> <img src="PC_Reception_DHCP_check.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/PC_Reception_DHCP_check.png" alt="Diagram" width="600"> </p>
 
 Also, we can see that connection is established between the different VLANS since PC_Store gets a reply when pinging PC_Reception.
 
-<p align="center"> <img src="Ping_Test_PC_Store_to_PC_Reception.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/Ping_Test_PC_Store_to_PC_Reception.png" alt="Diagram" width="600"> </p>
 
 ### 2ND FLOOR
 
-<p align="center"> <img src="2nd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/2nd_Floor_Diagram.png" alt="Diagram" width="600"> </p>
 
 This floor has the same elements and configuration as 1st floor with VLANs Finance, HR and Sales. I will proceed right to the configuration of the VLANs on Switch2.
 
@@ -373,11 +373,11 @@ Router2(dhcp-config)# exit
 Checking the DHCP IP configuration of the PC_Finance through the Packet Tracer GUI, I notice that it gets IP address of 192.168.5.3, which is a valid option within the address space 192.168.5.0/24.
 So DHCP works fine.
 
-<p align="center"> <img src="PC_Finance_DHCP_check.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/PC_Finance_DHCP_check.png" alt="Diagram" width="600"> </p>
 
 A ping test is also required to ensure communication between the 2nd floor VLANs. So, I will ping PC_Finance from PC_Sales.
 
-<p align="center"> <img src="Ping_Test_PC_Sales_to_PC_Finance.png" alt="Diagram" width="600"> </p>
+<p align="center"> <img src="Images/Ping_Test_PC_Sales_to_PC_Finance.png" alt="Diagram" width="600"> </p>
 
 The results show that a reply is indeed received on the PC_Sales teminal. So inter-vlan-routing works.
 
