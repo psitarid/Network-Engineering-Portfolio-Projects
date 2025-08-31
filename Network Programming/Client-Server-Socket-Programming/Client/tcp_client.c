@@ -2,10 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
-#include "tcp_server.h"
-#include "common.h"
+#include "../common.h"
 #include "tcp_client.h"
-#include "cert_x509_pem.h"
+#include "../cert_X509_pem.h"
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
@@ -41,7 +40,7 @@ int main(int argc, char *argv[]) {                                              
         printf("Certification file does not exist.\n");
     }
 
-    if ((cert_validity == 0)) {                                                                    // if certificate does not exist or is invalid, create a new one along with keys.
+    if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
         printf("Creating new client certificate and key...\n");
         client_key = rsa_key_gen();                                                              // RSA key generation
         client_cert = X509_new();                                                                // create client certificate
@@ -63,6 +62,9 @@ int main(int argc, char *argv[]) {                                              
     WSADATA wsa;
     winsock_init(&wsa);                                                                            // initialize Winsock and check for errors
 
+    char server_reply[BUFFER_SIZE];                                                                // buffer for the server reply
+    char client_message[BUFFER_SIZE] = "Can I have your certificate?";                             // allocate memory for client message
+
     struct sockaddr_in server_address;                                                             // create server address
     char address_type[] = "IPv4";                                                                  // specify address type
     int server_port = 9002;                                                                        // specify server port
@@ -72,14 +74,15 @@ int main(int argc, char *argv[]) {                                              
     SOCKET client_socket = socket(AF_INET, SOCK_STREAM, 0);                                        // create client socket
     check_socket_creation(client_socket);                                                          // check for client socket errors
 
-    char server_reply[BUFFER_SIZE];                                                                // buffer for the server reply
-    char client_message[BUFFER_SIZE] = "Is anyone there?";                                         // allocate memory for client message
-
     connect_to_server(client_socket, (struct sockaddr *)&server_address);                          // connect to server
 
-    send_message(&client_socket, client_message, BUFFER_SIZE);                                     // send message to server
+    send_message(&client_socket, client_message, strlen(client_message) + 1);                                     // send message to server
 
     receive_message(&client_socket, server_reply, BUFFER_SIZE);                                    // receive message from server
+
+    receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
+
+    receive_file(&client_socket, "server_key.pem");                                              // receive server private key file
 
     // Cleanup
     closesocket(client_socket);

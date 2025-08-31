@@ -3,8 +3,8 @@
 #include <string.h>
 #include <winsock2.h>
 #include "tcp_server.h"
-#include "common.h"
-#include "cert_X509_pem.h"
+#include "../common.h"
+#include "../cert_X509_pem.h"
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
@@ -31,7 +31,7 @@
 int main() {
 
 
-    // PHASE 1: Key Generation and Certificate Creation
+    // PHASE 1: Certificate and Key Generation
 
     EVP_PKEY *server_key;
     X509 *server_cert;
@@ -46,7 +46,7 @@ int main() {
     else {
         printf("Certification file does not exist.\n");
     }
-    
+
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
         printf("Creating new server certificate and key...\n");
         server_key = rsa_key_gen();                                                              // RSA key generation
@@ -63,7 +63,7 @@ int main() {
     else{
         printf("Existing certificate is valid.\n");
     }
-    
+
 // PHASE 2: COMMUNICATION WITH CLIENT
     WSADATA wsa;
     winsock_init(&wsa);                                                                          // initialize winsock and check for errors
@@ -72,18 +72,18 @@ int main() {
     struct sockaddr_in connection_address;                                                       // create connection address
 
     struct sockaddr_in listening_address;                                                        // create listening address
-    char listening_ip[] = "192.168.1.6";                                                     
+    char listening_ip[] = "192.168.1.4";                                                     
     char address_type[] = "IPv4";
     int listening_port = 9002;
-    
+
     server_address_constructor(&listening_address, listening_ip, address_type, listening_port);  // setup listening address
- 
+
     char client_message[BUFFER_SIZE];                                                            // buffer for the client message
-    char server_message[BUFFER_SIZE] = "You have reached the server!";                           // message for the client
+    char server_message[BUFFER_SIZE] = "I'm sending my certificate called server_cert.pem";      // message for the client
 
     SOCKET listening_socket = socket(AF_INET, SOCK_STREAM, 0);                                   // create listening socket
     check_socket_creation(listening_socket);                                                     // check for listening socket errors
-    
+
     bind_socket(listening_socket, listening_address);                                            // bind the listening socket
 
     listen_for_client(listening_socket);                                                         // listen for incoming connections
@@ -92,8 +92,13 @@ int main() {
 
     receive_message(&connection_socket, client_message, BUFFER_SIZE);                            // receive message from client
 
-    send_message(&connection_socket, server_message, BUFFER_SIZE);                               // send message to client
+    send_message(&connection_socket, server_message, strlen(server_message) + 1);                               // send message to client
 
+    send_file(&connection_socket, "server_cert.pem");                                                   // send server certificate file
+
+    send_file(&connection_socket, "server_key.pem");                                                  // send server private key file
+
+    closesocket(connection_socket);
     closesocket(listening_socket);                                                               // close the listening socket
     WSACleanup();
     X509_free(server_cert);                                                                      // free the server certificate

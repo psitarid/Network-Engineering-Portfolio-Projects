@@ -11,6 +11,7 @@
 #include <time.h>
 #include <errno.h>
 #include <openssl/err.h>
+#include "applink.c"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -24,20 +25,20 @@ int check_cert_exists(const char *filename){
 
 //Function to load certificate from file
 X509* load_certificate(const char *filename) {
-   BIO *bio = BIO_new_file(filename, "r");
-    if (!bio) {
-        fprintf(stderr, "Failed to open certificate file: %s\n", filename, strerror(errno));
-        ERR_print_errors_fp(stderr);    // print OpenSSL errors too
-        return NULL;
+    FILE *fp = fopen(filename, "rb")    ;
+    if (fp == NULL) {
+        printf("Could not open file %s for reading.\n", filename);
+        exit(1);
     }
-
-    X509 *cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+    X509 *cert = PEM_read_X509(fp, NULL, NULL, NULL);
     if (!cert) {
-        fprintf(stderr, "PEM_read_bio_X509 failed for '%s'\n", filename);
+        fprintf(stderr, "PEM_read_X509 failed for '%s'\n", filename);
         ERR_print_errors_fp(stderr);
     }
+
+    fflush(fp);
+    fclose(fp);
     
-    BIO_free(bio);
     return cert;
 }
 
@@ -45,18 +46,16 @@ X509* load_certificate(const char *filename) {
 
 // Function to load private key from file
 EVP_PKEY* load_private_key(const char *filename) {
-    BIO *bio = BIO_new_file(filename, "r");
-    if (!bio) {
-        fprintf(stderr, "Failed to open private key file: %s\n", filename);
-        return NULL;
-    }
-    else{
-        printf("Successfully loaded private key file: %s\n", filename);
-        
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        printf("Could not open file %s for reading.\n", filename);
+        exit(1);
     }
 
-    EVP_PKEY *pkey = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
-    BIO_free(bio);
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
+    
+    fflush(fp);
+    fclose(fp);
     
     return pkey;
 }
@@ -70,14 +69,14 @@ int check_cert_validity(X509 *cert){
         fprintf(stderr, "Certificate is NULL.\n");
         return 1;
     }
-    
+
     time_t now = time(NULL);                                                 // get current time
 
     if (X509_cmp_time(X509_get0_notBefore(cert), &now) > 0) {                // check certificate starting date
         printf("Certificate is not yet valid.\n");
         return 0;
     }
-    
+
     if (X509_cmp_time(X509_get0_notAfter(cert), &now) < 0) {                 // check certificate expiring date
         printf("Certificate has expired.\n");
         return 0;
@@ -229,7 +228,6 @@ void set_cert_names(X509 *cert) {
     if (!name) {                                                            // check for errors in name creation    
         fprintf(stderr, "Failed to create X509_NAME structure\n");
         return;  // Early return - can't continue without name
-
     }
 
     printf("  Set certificate Country using 2 letters(e.g. GR): ");         // prompt for country
@@ -292,17 +290,17 @@ void set_cert_names(X509 *cert) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Modified output_cert function using BIO
+// Output certificate using BIO
 void output_cert(char *filename, X509 *cert) {
-    BIO *bio = BIO_new_file(filename, "w");
-    if (!bio) {
-        fprintf(stderr, "Unable to create BIO for certificate file\n");
+    FILE *fp = fopen(filename, "wb");
+    if (!fp) {
+        fprintf(stderr, "Unable to create file for certificate output\n");
         return;
     }
-    
-    int result = PEM_write_bio_X509(bio, cert);
-    BIO_free(bio);
-    
+
+    int result = PEM_write_X509(fp, cert);
+    fclose(fp);
+
     if (!result) {
         fprintf(stderr, "Failed to write certificate to file\n");
     } else {
@@ -312,16 +310,16 @@ void output_cert(char *filename, X509 *cert) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Modified output_private_key function using BIO
+// Output private key using BIO
 void output_private_key(char *filename, EVP_PKEY *pkey) {
-    BIO *bio = BIO_new_file(filename, "w");
-    if (!bio) {
-        fprintf(stderr, "Unable to create BIO for private key file\n");
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "Unable to create file for private key output\n");
         return;
     }
-    
-    int result = PEM_write_bio_PrivateKey(bio, pkey, NULL, NULL, 0, NULL, NULL);
-    BIO_free(bio);
+
+    int result = PEM_write_PrivateKey(fp, pkey, NULL, NULL, 0, NULL, NULL);
+    fclose(fp);
     
     if (!result) {
         fprintf(stderr, "Failed to write private key to file\n");
