@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {                                              
 
     receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
 
-    receive_file(&client_socket, "server_key.pem");                                              // receive server private key file
+    send_file(&client_socket, "client_cert.pem");                                                   // send client certificate file
 
     // Cleanup
     closesocket(client_socket);

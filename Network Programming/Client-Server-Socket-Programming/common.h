@@ -45,7 +45,7 @@ void send_message(SOCKET *sender_socket,  char *message, int message_size) {
     if (send_check == SOCKET_ERROR) {
         printf("Send failed: %d\n", WSAGetLastError());
     } else {
-        printf("- Message sent.\n");
+        printf("- Message sent: %s\n", message);
     }
 }
 
@@ -83,8 +83,7 @@ void send_file(SOCKET *sender_socket, const char *filename) {
     rewind(fp);
 
     uint32_t network_filesize = htonl(filesize); // Convert to network byte order
-    printf("Sending file %s (%u bytes)...\n", filename, filesize);
-    if (send(*sender_socket, (char*)&network_filesize, sizeof(network_filesize), 0) == SOCKET_ERROR) {
+        if (send(*sender_socket, (char*)&network_filesize, sizeof(network_filesize), 0) == SOCKET_ERROR) {
         printf("Failed to send file size: %d\n", WSAGetLastError());
         fclose(fp);
         exit(1);
@@ -140,7 +139,6 @@ void receive_file(SOCKET *receiver_socket, const char *filename) {
     
     // Convert from network byte order to host byte order
     uint32_t filesize = ntohl(network_filesize);
-    printf("Received filesize: %u bytes\n", filesize);
     
     // Receive the file data in chunks
     uint32_t total_received = 0;
@@ -165,7 +163,7 @@ void receive_file(SOCKET *receiver_socket, const char *filename) {
 
     fclose(fp);
     if (total_received == filesize) {
-        printf("File received successfully: %s\n", filename);
+        printf("File %s received successfully (%u bytes)\n", filename, total_received);
     } else {
         printf("File transfer incomplete: expected %u, got %u bytes.\n",
                  filesize, total_received);

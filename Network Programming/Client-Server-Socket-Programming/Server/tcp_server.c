@@ -92,13 +92,13 @@ int main() {
 
     receive_message(&connection_socket, client_message, BUFFER_SIZE);                            // receive message from client
 
-    send_message(&connection_socket, server_message, strlen(server_message) + 1);                               // send message to client
+    send_message(&connection_socket, server_message, strlen(server_message) + 1);                // send message to client
 
-    send_file(&connection_socket, "server_cert.pem");                                                   // send server certificate file
+    send_file(&connection_socket, "server_cert.pem");                                            // send server certificate file
 
-    send_file(&connection_socket, "server_key.pem");                                                  // send server private key file
+    receive_file(&connection_socket, "client_cert.pem");                                         // receive client certificate file
 
-    closesocket(connection_socket);
+    closesocket(connection_socket);                                                              // close the connection socket
     closesocket(listening_socket);                                                               // close the listening socket
     WSACleanup();
     X509_free(server_cert);                                                                      // free the server certificate
