@@ -38,17 +38,13 @@ int main() {
     int cert_validity = 0;
 
     if (check_cert_exists("server_cert.pem") == 1) {                                             // check if server certificate already exists
-        printf("Certification file exists. Loading existing certificate and key...\n");
         server_cert = load_certificate("server_cert.pem");                                       // load existing server certificate
         server_key = load_private_key("server_key.pem");                                         // load existing server private key
         cert_validity = check_cert_validity(server_cert);                                        // check certificate validity
     }
-    else {
-        printf("Certification file does not exist.\n");
-    }
 
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
-        printf("Creating new server certificate and key...\n");
+        printf("- Creating new server certificate and key...\n");
         server_key = rsa_key_gen();                                                              // RSA key generation
         server_cert = X509_new();                                                          // create server certificate
         set_cert_version_and_serial(server_cert);                                                // set certificate version and serial number
@@ -59,9 +55,6 @@ int main() {
 
         output_cert("server_cert.pem", server_cert);                                             // output the server certificate to a file
         output_private_key("server_key.pem", server_key);                                        // output the server private key to a file
-    }
-    else{
-        printf("Existing certificate is valid.\n");
     }
 
 // PHASE 2: COMMUNICATION WITH CLIENT
@@ -98,6 +91,8 @@ int main() {
 
     receive_file(&connection_socket, "client_cert.pem");                                         // receive client certificate file
 
+    check_cert_validity(load_certificate("client_cert.pem"));                                 // check client certificate validity
+    
     closesocket(connection_socket);                                                              // close the connection socket
     closesocket(listening_socket);                                                               // close the listening socket
     WSACleanup();

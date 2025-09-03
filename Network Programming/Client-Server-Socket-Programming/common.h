@@ -12,14 +12,13 @@
 
 // check Winsock initialization
 void winsock_init(WSADATA *wsa) {
-    printf("- Initializing Winsock...\n");
     if (WSAStartup(MAKEWORD(2,2), wsa) != 0) {
         printf("Failed. Error Code: %d\n", WSAGetLastError());
         WSACleanup();
         exit(1);
     }
     else {
-        printf("- Initialization successful.\n");
+        printf("- Winsock initialization successful.\n");
     }
 }
 
@@ -33,7 +32,7 @@ void check_socket_creation(SOCKET socket) {
         exit(1);
     }
     else {
-        printf("- Socket created successfully.\n");
+        printf("- Socket creation successfully.\n");
     }
 }
 
@@ -45,7 +44,7 @@ void send_message(SOCKET *sender_socket,  char *message, int message_size) {
     if (send_check == SOCKET_ERROR) {
         printf("Send failed: %d\n", WSAGetLastError());
     } else {
-        printf("- Message sent: %s\n", message);
+        printf("Message sent: %s\n\n", message);
     }
 }
 
@@ -61,7 +60,7 @@ void receive_message(SOCKET *receiver_socket, char *incoming_message, int messag
         exit(1);
     } else if (recv_size > 0) {
         incoming_message[recv_size] = '\0';                    // Null-terminate the received message
-        printf("- Received message: %s\n", incoming_message);
+        printf("Received message: %s\n\n", incoming_message);
     }
 }
 
@@ -165,8 +164,7 @@ void receive_file(SOCKET *receiver_socket, const char *filename) {
     if (total_received == filesize) {
         printf("File %s received successfully (%u bytes)\n", filename, total_received);
     } else {
-        printf("File transfer incomplete: expected %u, got %u bytes.\n",
-                 filesize, total_received);
+        printf("File transfer incomplete: expected %u, got %u bytes.\n", filesize, total_received);
     }
 }
 

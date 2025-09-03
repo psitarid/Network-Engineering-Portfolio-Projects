@@ -40,7 +40,7 @@ void accept_socket(SOCKET *connection_socket, struct sockaddr_in connection_addr
         exit(1);
     }
     // Print client info
-    printf("- Connection received from %s:%d\n",
+    printf("- Connection received from %s:%d\n\n",
            inet_ntoa(connection_address.sin_addr),
            ntohs(connection_address.sin_port));
 }

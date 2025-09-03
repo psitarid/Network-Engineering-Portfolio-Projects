@@ -11,6 +11,6 @@ void connect_to_server(SOCKET client_socket, struct sockaddr *server_address) {
         exit(1);
     }
     else {
-        printf("- Connected to server successfully.\n");
+        printf("- Connected to server successfully.\n\n");
     }
 }

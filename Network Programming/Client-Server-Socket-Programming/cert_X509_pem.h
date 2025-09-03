@@ -17,15 +17,23 @@
 
 //Check file existence
 int check_cert_exists(const char *filename){
+    printf("\n- Searching for existing certificates...\n");
     struct stat buffer;
-    return (stat(filename, &buffer) == 0);
+    if((stat(filename, &buffer) == 0)){
+        printf("- Certificate %s found!\n", filename);
+        return 1;
+    }
+    else{
+        printf("- No certificates found.\n");
+        return 0;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function to load certificate from file
 X509* load_certificate(const char *filename) {
-    FILE *fp = fopen(filename, "rb")    ;
+    FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         printf("Could not open file %s for reading.\n", filename);
         exit(1);
@@ -53,7 +61,11 @@ EVP_PKEY* load_private_key(const char *filename) {
     }
 
     EVP_PKEY *pkey = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
-    
+    if (!pkey) {
+        fprintf(stderr, "PEM_read_PrivateKey failed for '%s'\n", filename);
+        ERR_print_errors_fp(stderr);
+    }
+
     fflush(fp);
     fclose(fp);
     
@@ -64,7 +76,7 @@ EVP_PKEY* load_private_key(const char *filename) {
 
 // Function to check certificate validity
 int check_cert_validity(X509 *cert){
-
+    printf("\n- Checking certificate validity...\n");
     if (!cert) {                                                             // Check if certificate is NULL
         fprintf(stderr, "Certificate is NULL.\n");
         return 1;
@@ -81,11 +93,16 @@ int check_cert_validity(X509 *cert){
         printf("Certificate has expired.\n");
         return 0;
     }
-    
+
+    printf("    -> Certificate is within the validity period.\n");
+
     EVP_PKEY *pkey = X509_get_pubkey(cert);                                  // verify certificate signature (self-signed)
     if (!pkey) {
         printf("Failed to extract public key from certificate.\n");
         return 0;
+    }
+    else{
+        printf("    -> Public key extracted successfully.\n");
     }
     
     int verify_sign_result = X509_verify(cert, pkey);                             // verify the certificate signature
@@ -95,8 +112,11 @@ int check_cert_validity(X509 *cert){
         printf("Certificate signature verification failed.\n");
         return 0;
     }
+    else {
+        printf("    -> Certificate signature verification succeeded.\n");
+    }
     
-    printf("Certificate is valid.\n");
+    printf("- Existing certificate is valid.\n\n");
     return 1;
     }
 

@@ -31,13 +31,9 @@ int main(int argc, char *argv[]) {                                              
     int cert_validity = 0;
 
     if (check_cert_exists("client_cert.pem") == 1) {                                             // check if client certificate already exists
-        printf("Certification file exists. Loading existing certificate and key...\n");
         client_cert = load_certificate("client_cert.pem");                                       // load existing client certificate
         client_key = load_private_key("client_key.pem");                                         // load existing client private key
         cert_validity = check_cert_validity(client_cert);                                        // check certificate validity
-    }
-    else {
-        printf("Certification file does not exist.\n");
     }
 
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
@@ -52,9 +48,6 @@ int main(int argc, char *argv[]) {                                              
 
         output_cert("client_cert.pem", client_cert);                                             // output the client certificate to a file
         output_private_key("client_key.pem", client_key);                                        // output the client private key to a file
-    }
-    else{
-        printf("Existing certificate is valid.\n");
     }
 
 
@@ -83,6 +76,8 @@ int main(int argc, char *argv[]) {                                              
     receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
 
     send_file(&client_socket, "client_cert.pem");                                                   // send client certificate file
+
+    check_cert_validity(load_certificate("server_cert.pem"));                                 // check server certificate validity
 
     // Cleanup
     closesocket(client_socket);
