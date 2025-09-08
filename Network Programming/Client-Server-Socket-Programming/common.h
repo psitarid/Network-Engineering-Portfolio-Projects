@@ -1,3 +1,6 @@
+#ifndef COMMON_H
+#define COMMON_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +8,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include "cert_X509_pem.h"
 
 #define BUFFER_SIZE 1024
 
@@ -18,8 +26,32 @@ void winsock_init(WSADATA *wsa) {
         exit(1);
     }
     else {
-        printf("- Winsock initialization successful.\n");
+        printf("[ + ] Winsock initialization successful.\n");
     }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void initialize_openssl() {
+    printf("[...] Initializing OpenSSL library...\n");
+
+    // initialize the SSL library
+    SSL_library_init();
+
+
+    // load all SSL error messages
+    SSL_load_error_strings();
+
+    // load all cryptographic algorithms
+    OpenSSL_add_all_algorithms();
+
+    // initialize random number generator (for key generation)
+    if (RAND_poll() == 0) {
+        printf("RAND_poll failed - random number generator not properly seeded.\n");
+        exit(1);
+    }
+
+    printf("[ + ] OpenSSL library initialized successfully.\n\n");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +64,7 @@ void check_socket_creation(SOCKET socket) {
         exit(1);
     }
     else {
-        printf("- Socket creation successfully.\n");
+        printf("[ + ] Socket creation successfully.\n");
     }
 }
 
@@ -180,3 +212,50 @@ void server_address_constructor(struct sockaddr_in *server_address, const char *
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Print SSL error messages for debugging
+ */
+void print_ssl_error(const char *msg) {
+    unsigned long err = ERR_get_error();
+    char err_buf[256];
+    ERR_error_string_n(err, err_buf, sizeof(err_buf));
+    printf("SSL Error: %s - %s\n", msg, err_buf);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Cleanup OpenSSL library
+ */
+void cleanup_openssl() {
+    printf("- Cleaning up OpenSSL...\n");
+    
+    // Clean up error strings
+    ERR_free_strings();
+    
+    // Clean up algorithms
+    EVP_cleanup();
+    
+    printf("    -> OpenSSL cleanup complete\n");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
+    // You can add custom verification logic here if needed
+    X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
+    return check_cert_validity(cert) ? 1 : 0;                       // Return the result of the validity check
+}
+
+
+
+
+
+
+
+
+
+
+
+#endif // COMMON_H

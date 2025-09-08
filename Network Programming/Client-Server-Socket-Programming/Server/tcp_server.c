@@ -11,6 +11,7 @@
 #include <openssl/evp.h>     // High-level cryptographic functions
 #include <openssl/bn.h>      // Big number arithmetic
 #include <openssl/err.h>     // Error handling
+#include <openssl/dh.h>      // Diffie-Hellman key exchange
 
 #pragma comment(lib, "ws2_32.lib")                                                               // link with Winsock library
 
@@ -30,9 +31,7 @@
 
 int main() {
 
-
     // PHASE 1: Certificate and Key Generation
-
     EVP_PKEY *server_key;
     X509 *server_cert;
     int cert_validity = 0;
@@ -46,7 +45,7 @@ int main() {
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
         printf("- Creating new server certificate and key...\n");
         server_key = rsa_key_gen();                                                              // RSA key generation
-        server_cert = X509_new();                                                          // create server certificate
+        server_cert = X509_new();                                                                // create server certificate
         set_cert_version_and_serial(server_cert);                                                // set certificate version and serial number
         set_cert_validity(server_cert);
         set_cert_names(server_cert);                                                             // set certificate details
@@ -56,6 +55,12 @@ int main() {
         output_cert("server_cert.pem", server_cert);                                             // output the server certificate to a file
         output_private_key("server_key.pem", server_key);                                        // output the server private key to a file
     }
+
+    initialize_openssl();                                                                        // initialize OpenSSL library                     
+
+    SSL_CTX *ssl_ctx = create_server_context();                                                  // create SSL context 
+
+    configure_server_context(ssl_ctx, "server_cert.pem", "server_key.pem");                      // configure the server context with certificate and key    
 
 // PHASE 2: COMMUNICATION WITH CLIENT
     WSADATA wsa;
@@ -91,14 +96,15 @@ int main() {
 
     receive_file(&connection_socket, "client_cert.pem");                                         // receive client certificate file
 
-    check_cert_validity(load_certificate("client_cert.pem"));                                 // check client certificate validity
+    check_cert_validity(load_certificate("client_cert.pem"));                                    // check client certificate validity
     
     closesocket(connection_socket);                                                              // close the connection socket
     closesocket(listening_socket);                                                               // close the listening socket
     WSACleanup();
     X509_free(server_cert);                                                                      // free the server certificate
     EVP_PKEY_free(server_key);                                                                   // free the server private key
-
+    SSL_CTX_free(ssl_ctx);                                                                       // free the SSL context
+    cleanup_openssl();                                                                           // cleanup OpenSSL
     return 0;
 
 }

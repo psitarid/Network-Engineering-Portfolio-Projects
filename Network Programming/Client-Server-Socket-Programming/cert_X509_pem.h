@@ -1,3 +1,7 @@
+#ifndef CERT_X509_PEM_H
+#define CERT_X509_PEM_H
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,14 +21,14 @@
 
 //Check file existence
 int check_cert_exists(const char *filename){
-    printf("\n- Searching for existing certificates...\n");
+    printf("\n[...] Searching for existing certificates...\n");
     struct stat buffer;
     if((stat(filename, &buffer) == 0)){
-        printf("- Certificate %s found!\n", filename);
+        printf("[ + ] Certificate %s found!\n", filename);
         return 1;
     }
     else{
-        printf("- No certificates found.\n");
+        printf("[ - ] No certificates found.\n");
         return 0;
     }
 }
@@ -76,7 +80,7 @@ EVP_PKEY* load_private_key(const char *filename) {
 
 // Function to check certificate validity
 int check_cert_validity(X509 *cert){
-    printf("\n- Checking certificate validity...\n");
+    printf("\n[...] Checking certificate validity...\n");
     if (!cert) {                                                             // Check if certificate is NULL
         fprintf(stderr, "Certificate is NULL.\n");
         return 1;
@@ -116,7 +120,7 @@ int check_cert_validity(X509 *cert){
         printf("    -> Certificate signature verification succeeded.\n");
     }
     
-    printf("- Existing certificate is valid.\n\n");
+    printf("[ + ] Certificate is valid.\n\n");
     return 1;
     }
 
@@ -347,3 +351,15 @@ void output_private_key(char *filename, EVP_PKEY *pkey) {
         printf("- Private key written to %s successfully.\n", filename);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+#endif // CERT_X509_PEM_H

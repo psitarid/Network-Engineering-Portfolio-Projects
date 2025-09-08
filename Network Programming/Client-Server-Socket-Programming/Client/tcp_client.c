@@ -23,9 +23,7 @@ int main(int argc, char *argv[]) {                                              
     }
 
 
-    // PHASE 1: Key Generation and Certificate Creation
-
-
+    // Key Generation and Certificate Creation
     EVP_PKEY *client_key;
     X509 *client_cert;
     int cert_validity = 0;
@@ -49,9 +47,12 @@ int main(int argc, char *argv[]) {                                              
         output_cert("client_cert.pem", client_cert);                                             // output the client certificate to a file
         output_private_key("client_key.pem", client_key);                                        // output the client private key to a file
     }
+    // SSL/TLS Setup
+    initialize_openssl();                                                                        // initialize OpenSSL library
+    SSL_CTX *ssl_ctx = create_client_context();                                                  // create SSL context
+    configure_client_context(ssl_ctx, "client_cert.pem", "client_key.pem");                      // configure the client context with certificate and key
 
-
-    // PHASE 2: Communication with the Server
+    // Communication with the Server
     WSADATA wsa;
     winsock_init(&wsa);                                                                            // initialize Winsock and check for errors
 
@@ -82,6 +83,10 @@ int main(int argc, char *argv[]) {                                              
     // Cleanup
     closesocket(client_socket);
     WSACleanup();
+    X509_free(client_cert);
+    EVP_PKEY_free(client_key);
+    SSL_CTX_free(ssl_ctx);
+    cleanup_openssl();
     return 0;
 }
 
