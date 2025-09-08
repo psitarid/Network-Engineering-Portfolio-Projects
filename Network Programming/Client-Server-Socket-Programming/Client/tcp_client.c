@@ -2,10 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
-#include "tcp_server.h"
-#include "common.h"
+#include "../common.h"
 #include "tcp_client.h"
-#include "cert_x509_pem.h"
+#include "../cert_X509_pem.h"
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
@@ -24,24 +23,18 @@ int main(int argc, char *argv[]) {                                              
     }
 
 
-    // PHASE 1: Key Generation and Certificate Creation
-
-
+    // Key Generation and Certificate Creation
     EVP_PKEY *client_key;
     X509 *client_cert;
     int cert_validity = 0;
 
     if (check_cert_exists("client_cert.pem") == 1) {                                             // check if client certificate already exists
-        printf("Certification file exists. Loading existing certificate and key...\n");
         client_cert = load_certificate("client_cert.pem");                                       // load existing client certificate
         client_key = load_private_key("client_key.pem");                                         // load existing client private key
         cert_validity = check_cert_validity(client_cert);                                        // check certificate validity
     }
-    else {
-        printf("Certification file does not exist.\n");
-    }
 
-    if ((cert_validity == 0)) {                                                                    // if certificate does not exist or is invalid, create a new one along with keys.
+    if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
         printf("Creating new client certificate and key...\n");
         client_key = rsa_key_gen();                                                              // RSA key generation
         client_cert = X509_new();                                                                // create client certificate
@@ -54,14 +47,17 @@ int main(int argc, char *argv[]) {                                              
         output_cert("client_cert.pem", client_cert);                                             // output the client certificate to a file
         output_private_key("client_key.pem", client_key);                                        // output the client private key to a file
     }
-    else{
-        printf("Existing certificate is valid.\n");
-    }
+    // SSL/TLS Setup
+    initialize_openssl();                                                                        // initialize OpenSSL library
+    SSL_CTX *ssl_ctx = create_client_context();                                                  // create SSL context
+    configure_client_context(ssl_ctx, "client_cert.pem", "client_key.pem");                      // configure the client context with certificate and key
 
-
-    // PHASE 2: Communication with the Server
+    // Communication with the Server
     WSADATA wsa;
     winsock_init(&wsa);                                                                            // initialize Winsock and check for errors
+
+    char server_reply[BUFFER_SIZE];                                                                // buffer for the server reply
+    char client_message[BUFFER_SIZE] = "Can I have your certificate?";                             // allocate memory for client message
 
     struct sockaddr_in server_address;                                                             // create server address
     char address_type[] = "IPv4";                                                                  // specify address type
@@ -72,18 +68,25 @@ int main(int argc, char *argv[]) {                                              
     SOCKET client_socket = socket(AF_INET, SOCK_STREAM, 0);                                        // create client socket
     check_socket_creation(client_socket);                                                          // check for client socket errors
 
-    char server_reply[BUFFER_SIZE];                                                                // buffer for the server reply
-    char client_message[BUFFER_SIZE] = "Is anyone there?";                                         // allocate memory for client message
-
     connect_to_server(client_socket, (struct sockaddr *)&server_address);                          // connect to server
 
-    send_message(&client_socket, client_message, BUFFER_SIZE);                                     // send message to server
+    send_message(&client_socket, client_message, strlen(client_message) + 1);                                     // send message to server
 
     receive_message(&client_socket, server_reply, BUFFER_SIZE);                                    // receive message from server
+
+    receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
+
+    send_file(&client_socket, "client_cert.pem");                                                   // send client certificate file
+
+    check_cert_validity(load_certificate("server_cert.pem"));                                 // check server certificate validity
 
     // Cleanup
     closesocket(client_socket);
     WSACleanup();
+    X509_free(client_cert);
+    EVP_PKEY_free(client_key);
+    SSL_CTX_free(ssl_ctx);
+    cleanup_openssl();
     return 0;
 }
 
