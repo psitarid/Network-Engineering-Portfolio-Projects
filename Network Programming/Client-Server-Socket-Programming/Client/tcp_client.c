@@ -5,6 +5,8 @@
 #include "../common.h"
 #include "tcp_client.h"
 #include "../cert_X509_pem.h"
+#include "../tls_handshake.h"
+#include <openssl/ssl.h>
 #include <openssl/x509.h>    // X.509 certificate structures and functions
 #include <openssl/pem.h>      // PEM format encoding/decoding
 #include <openssl/rsa.h>     // RSA key generation and operations
@@ -22,8 +24,9 @@ int main(int argc, char *argv[]) {                                              
         return 1;
     }
 
+// PHASE1: Key Generation and Certificate Creation
+    printf("\n\n------------------------- Key and Certificate Generation -------------------------\n\n\n");
 
-    // Key Generation and Certificate Creation
     EVP_PKEY *client_key;
     X509 *client_cert;
     int cert_validity = 0;
@@ -47,12 +50,11 @@ int main(int argc, char *argv[]) {                                              
         output_cert("client_cert.pem", client_cert);                                             // output the client certificate to a file
         output_private_key("client_key.pem", client_key);                                        // output the client private key to a file
     }
-    // SSL/TLS Setup
-    initialize_openssl();                                                                        // initialize OpenSSL library
-    SSL_CTX *ssl_ctx = create_client_context();                                                  // create SSL context
-    configure_client_context(ssl_ctx, "client_cert.pem", "client_key.pem");                      // configure the client context with certificate and key
 
-    // Communication with the Server
+
+// PHASE 2: TCP Connection Setup
+    printf("\n\n---------------------- Socket Setup and Connection Handling ----------------------\n\n\n");
+
     WSADATA wsa;
     winsock_init(&wsa);                                                                            // initialize Winsock and check for errors
 
@@ -70,17 +72,60 @@ int main(int argc, char *argv[]) {                                              
 
     connect_to_server(client_socket, (struct sockaddr *)&server_address);                          // connect to server
 
-    send_message(&client_socket, client_message, strlen(client_message) + 1);                                     // send message to server
 
-    receive_message(&client_socket, server_reply, BUFFER_SIZE);                                    // receive message from server
 
-    receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
+// PHASE 3: SSL/TLS Setup and Secure Communication
+    printf("\n\n---------------------- SSL/TLS Setup and Secure Communication ----------------------\n\n");
+    initialize_openssl();                                                                        // initialize OpenSSL library
+    SSL_CTX *ssl_ctx = create_client_context();                                                  // create SSL context
+    configure_client_context(ssl_ctx, "client_cert.pem", "client_key.pem");                      // configure the client context with certificate and key
 
-    send_file(&client_socket, "client_cert.pem");                                                   // send client certificate file
+// PHASE 4: TLS Handshake and Secure Data Exchange
+    printf("\n\n---------------------- TLS Handshake and Secure Data Exchange ----------------------\n\n");    
+    // Create SSL connection object
+    ssl_connection_t *ssl_conn;
+    ssl_conn = create_ssl_connection(ssl_ctx, client_socket);   
+    if (!ssl_conn) {
+        printf("Failed to create SSL connection\n");
+        closesocket(client_socket);
+        SSL_CTX_free(ssl_ctx);
+        cleanup_openssl();
+        WSACleanup();
+    }
+    client_handshake(ssl_conn);
+    // Perform TLS handshake as client
+    if(client_handshake(ssl_conn) <= 0) {                                                                   // perform TLS handshake as client
+        printf("[ - ] TLS handshake failed\n");
+        SSL_free(ssl_conn->ssl);
+        free(ssl_conn);
+        closesocket(client_socket);
+        SSL_CTX_free(ssl_ctx);
+        cleanup_openssl();
+        WSACleanup();
+    }
 
-    check_cert_validity(load_certificate("server_cert.pem"));                                 // check server certificate validity
+    // Display connection information
+    print_handshake_info(ssl_conn);                                                              // print detailed handshake information
+    verify_cipher_suite(ssl_conn);
+    display_peer_cert(ssl_conn);
+
+    // Test SSL communication
+    if (!test_ssl_communication(ssl_conn, 0)) {                                                  // test SSL
+        printf("[ - ]SSL communication test failed\n");
+    }
+
+    // send_message(&client_socket, client_message, strlen(client_message) + 1);                                     // send message to server
+
+    // receive_message(&client_socket, server_reply, BUFFER_SIZE);                                    // receive message from server
+
+    // receive_file(&client_socket, "server_cert.pem");                                             // receive server certificate file
+
+    // send_file(&client_socket, "client_cert.pem");                                                   // send client certificate file
+
+    // check_cert_validity(load_certificate("server_cert.pem"));                                 // check server certificate validity
 
     // Cleanup
+    cleanup_ssl_connection(ssl_conn);
     closesocket(client_socket);
     WSACleanup();
     X509_free(client_cert);
@@ -89,4 +134,6 @@ int main(int argc, char *argv[]) {                                              
     cleanup_openssl();
     return 0;
 }
+
+
 

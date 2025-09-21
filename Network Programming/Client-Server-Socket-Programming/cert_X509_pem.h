@@ -21,7 +21,7 @@
 
 //Check file existence
 int check_cert_exists(const char *filename){
-    printf("\n[...] Searching for existing certificates...\n");
+    printf("[...] Searching for existing certificates...\n");
     struct stat buffer;
     if((stat(filename, &buffer) == 0)){
         printf("[ + ] Certificate %s found!\n", filename);
@@ -98,7 +98,7 @@ int check_cert_validity(X509 *cert){
         return 0;
     }
 
-    printf("    -> Certificate is within the validity period.\n");
+    printf("      -> Certificate is within the validity period.\n");
 
     EVP_PKEY *pkey = X509_get_pubkey(cert);                                  // verify certificate signature (self-signed)
     if (!pkey) {
@@ -106,7 +106,7 @@ int check_cert_validity(X509 *cert){
         return 0;
     }
     else{
-        printf("    -> Public key extracted successfully.\n");
+        printf("      -> Public key extracted successfully.\n");
     }
     
     int verify_sign_result = X509_verify(cert, pkey);                             // verify the certificate signature
@@ -117,7 +117,7 @@ int check_cert_validity(X509 *cert){
         return 0;
     }
     else {
-        printf("    -> Certificate signature verification succeeded.\n");
+        printf("      -> Certificate signature verification succeeded.\n");
     }
     
     printf("[ + ] Certificate is valid.\n\n");

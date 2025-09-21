@@ -14,6 +14,7 @@
 #include <openssl/x509_vfy.h>   // X509_STORE_CTX, verification callbacks
 #include <openssl/evp.h>        // EVP_PKEY (for key checks)
 #include "../common.h"
+#include "../tls_handshake.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -85,7 +86,7 @@ SSL_CTX* create_server_context() {
     }
     
     printf("Cipher suite set to: %s\n", cipher_list);
-    printf("  -> Key Exchange: Diffie-Hellman Ephemeral (DHE)\n");
+    printf("  -> Key Exchange: DHE\n");
     printf("  -> Authentication: RSA\n");
     printf("  -> Bulk Encryption: AES-256-CBC\n");
     printf("  -> MAC: SHA-256\n\n");
@@ -141,6 +142,63 @@ void configure_server_context(SSL_CTX *ctx, const char *cert_file, const char *k
     SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 
     printf("[ + ] Server context configuration complete\n\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int server_handshake(ssl_connection_t *conn) {
+
+    printf("[...] Starting TLS handshake as server...\n");
+    
+    // Perform the handshake
+    int handshake_result = SSL_accept(conn->ssl);
+
+    if(handshake_result <= 0) {
+        int ssl_error = SSL_get_error(conn->ssl, handshake_result);
+        printf("Handshake failed with error code: %d\n", ssl_error);
+    
+        switch (ssl_error) {
+            case SSL_ERROR_WANT_READ:
+                printf("- Handshake needs more data from client (network issue?)\n");
+                break;
+                
+            case SSL_ERROR_WANT_WRITE:
+                printf("- Handshake needs to send more data to client (network issue?)\n");
+                break;
+                
+            case SSL_ERROR_SYSCALL: {
+                int wsa_error = WSAGetLastError();
+                printf("- System call error during handshake: %d\n", wsa_error);
+                if (wsa_error == 0) {
+                    printf("- Connection closed unexpectedly by client\n");
+                }
+                break;
+            }
+                
+            case SSL_ERROR_SSL:
+                printf("- SSL protocol error during handshake:\n");
+                ERR_print_errors_fp(stderr);
+                break;
+                
+            case SSL_ERROR_ZERO_RETURN:
+                printf("- Connection closed cleanly during handshake\n");
+                break;
+                
+            default:
+                printf("- Unknown SSL error: %d\n", ssl_error);
+                ERR_print_errors_fp(stderr);
+                break;
+        }
+        return 0;
+    
+    }
+    else {
+        printf("[ + ] TLS handshake completed successfully\n");
+        printf("[ + ] Secure connection established\n\n");
+        return 1;
+    }
+
+    
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "tcp_client.h": "c"
+    }
+}
