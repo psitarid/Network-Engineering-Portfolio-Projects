@@ -107,10 +107,6 @@ int main(int argc, char *argv[]) {                                              
     // Print detailed handshake information
     printf("\n\n----------------------------- Handshake Information ------------------------------\n\n\n");
     print_handshake_info(ssl_conn);                                                              // print detailed handshake information
-
-    // Verify the negotiated cipher suite
-    printf("\n\n---------------------------- Cipher Suite Verification ---------------------------\n\n\n");
-    verify_cipher_suite(ssl_conn);
     
     // Display the peer (server) certificate information
     printf("\n\n-------------------------- Peer Certificate Information --------------------------\n\n\n");
@@ -133,6 +129,7 @@ int main(int argc, char *argv[]) {                                              
     // check_cert_validity(load_certificate("server_cert.pem"));                                 // check server certificate validity
 
     // Cleanup
+    printf("\n\n------------------------------------- Cleanup ------------------------------------\n\n");
     cleanup_ssl_connection(ssl_conn);
     closesocket(client_socket);
     WSACleanup();

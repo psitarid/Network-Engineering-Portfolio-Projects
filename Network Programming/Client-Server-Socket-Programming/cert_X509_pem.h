@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <openssl/err.h>
 #include "applink.c"
+#include <openssl/objects.h>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -80,17 +81,13 @@ EVP_PKEY* load_private_key(const char *filename) {
 
 // Function to check certificate validity
 int check_cert_validity(X509 *cert){
-    
-    char cert_owner[512];
-    X509_NAME_oneline(X509_get_subject_name(cert), cert_owner, sizeof(cert_owner));
 
-    if (strstr(cert_owner, "server") || strstr(cert_owner, "Server")) {
-        printf("\n[...] Checking server certificate validity...\n");
-    } else if (strstr(cert_owner, "client") || strstr(cert_owner, "Client")) {
-        printf("\n[...] Checking client certificate validity...\n");
-    } else {
-        printf("\n[...] Checking certificate validity...\n");
-    }
+    char cn[256];
+    int cn_id = NID_commonName;
+    X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, cn, sizeof(cn));
+    
+    printf("\n[...] Checking %s certificate validity...\n", cn);
+
 
     if (!cert) {                                                             // Check if certificate is NULL
         fprintf(stderr, "Certificate is NULL.\n");
@@ -285,8 +282,6 @@ void set_cert_names(X509 *cert) {
         X509_NAME_free(name);
         return;
     }
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////    
     
     // Add entries to the name
     int name_status = X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char *)country, -1, -1, 0);         // 1 for successs, 0 for error

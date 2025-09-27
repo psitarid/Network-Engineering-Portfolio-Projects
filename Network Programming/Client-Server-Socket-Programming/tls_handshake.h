@@ -5,6 +5,8 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
+#include <openssl/bio.h>
+#include <openssl/objects.h>
 #include <winsock2.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,20 +84,39 @@ void print_handshake_info(ssl_connection_t *conn) {
 
     
     // Key exchange algorithm
+    const char *kx_name = "Unknown";
+    
     if (strcmp(version, "TLSv1.3") == 0) {
         printf("* Key Exchange Algorithm: ECDHE (TLS 1.3 default)\n");
     } else if (strcmp(version, "TLSv1.2") == 0) {
         int kx_nid = SSL_CIPHER_get_kx_nid(cipher);
-        const char *kx_name = kx_nid ? OBJ_nid2sn(kx_nid) : "Unknown";
+        kx_name = kx_nid ? OBJ_nid2sn(kx_nid) : "Unknown";
         kx_name += 2; // skip "Kx"
         
         printf("* Key Exchange Algorithm: %s\n", kx_name);
     }
 
+    // Authentication algorithm
+    if(strcmp(version, "TLSv1.3") == 0) {
+        printf("* Authentication: RSA (from certificates)\n");
+    } else if (strcmp(version, "TLSv1.2") == 0) {
+        int auth_nid = SSL_CIPHER_get_auth_nid(cipher);
+        const char *auth_name = auth_nid ? OBJ_nid2sn(auth_nid) : "Unknown";
+        auth_name += 4; // skip "Au"
+        printf("* Authentication: %s\n", auth_name);
+    }
+
     // Bulk encryption algorithm
     int enc_nid = SSL_CIPHER_get_cipher_nid(cipher);
-    const char *enc_name = enc_nid ? OBJ_nid2sn(enc_nid) : "Unknown";
-    enc_name += 3; // skip "id-"
+    const char *enc_name_raw = enc_nid ? OBJ_nid2sn(enc_nid) : "Unknown";
+    enc_name_raw += 3; // skip "id-"
+
+    // Convert to uppercase
+    char enc_name[64];
+    snprintf(enc_name, sizeof(enc_name), "%s", enc_name_raw); 
+    for (char *p = enc_name; *p; ++p) {
+        *p = toupper((unsigned char)*p);
+    }
     
     printf("* Bulk Encryption: %s\n", enc_name);
 
@@ -104,13 +125,14 @@ void print_handshake_info(ssl_connection_t *conn) {
     const char *hmac_name = md ? EVP_MD_name(md) : "Unknown";
     // hmac_name += 3; // skip "id-"    
 
-    printf("* HMAC Algorithm: %s\n", hmac_name);
+    printf("* Hashing: %s\n\n", hmac_name);
 
     // Session information
     SSL_SESSION *session = SSL_get_session(conn->ssl);
     if (session) {
         printf("[ + ] Session established successfully\n");
-    } else {
+    } 
+    else {
         printf("[ - ] No session information available\n");
     }
 
@@ -121,61 +143,27 @@ void print_handshake_info(ssl_connection_t *conn) {
     else {
         printf("[ - ] Session is not resumable\n");
     }
+
+    // check for Perfect Forward Secrecy (PFS)
+    if(strcmp(version, "TLSv1.3") == 0) {
+        printf("[ + ] Perfect Forward Secrecy (PFS) is enabled because of TLSv1.3\n");
+        printf("      Even if private keys are compromised later, past communications remain secure.\n\n");
+    }
+    else if(strcmp(version, "TLSv1.2") == 0) {
+        if(strstr(kx_name, "DHE") || strstr(kx_name, "ECDHE")) {
+            printf("[ + ] Perfect Forward Secrecy (PFS) is enabled because of %s\n", kx_name);
+            printf("      Even if private keys are compromised later, past communications remain secure.\n\n");
+        } 
+        else {
+            printf("[ - ] Warning: Perfect Forward Secrecy (PFS) is NOT enabled because it is not supported by %s!\n\n", kx_name);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Verify that the negotiated cipher suite meets your requirements
-
-void verify_cipher_suite(ssl_connection_t *conn) {
-    printf("\n[...] Verifying negotiated cipher suite...\n");
-
-    const char *cipher_name = SSL_get_cipher(conn->ssl);
-    const SSL_CIPHER *cipher = SSL_get_current_cipher(conn->ssl);
-
-    if (!cipher) {
-        printf("ERROR: No cipher suite negotiated\n");
-        exit(1);
-    }
-
-    //Get detailed cipher information
-    char cipher_description[256];
-    SSL_CIPHER_description(cipher, cipher_description, sizeof(cipher_description));
-    printf("- Cipher Description: %s\n", cipher_description);
-
-    // Verify key exchange algorithm
-    int kx_nid = SSL_CIPHER_get_kx_nid(cipher);
-    const char *kx_name = kx_nid ? OBJ_nid2sn(kx_nid) : "Unknown";
-    
-    if (kx_name && strncmp(kx_name, "Kx", 2) == 0) {
-    kx_name += 2; // skip "Kx"
-    }
-
-    printf("- Key Exchange: %s\n", kx_name);
-
-    // Verify authentication algorithm
-    const char *auth_name = SSL_CIPHER_get_auth_nid(cipher) ? "RSA" : "Unknown";
-    printf("- Authentication: %s\n", auth_name);
-
-    // Verify encryption algorithm and key size
-    int alg_bits, strength_bits;
-    strength_bits = SSL_CIPHER_get_bits(cipher, &alg_bits);
-    printf("- Encryption: %d-bit algorithm, %d-bit effective strength\n", alg_bits, strength_bits);
-
-    // check for Perfect Forward Secrecy (PFS)
-    if(strstr(cipher_name, "DHE") || strstr(cipher_name, "ECDHE")) {
-        printf("[ + ] Perfect Forward Secrecy (PFS) is enabled with %s\n", cipher_name);
-        printf("  * Even if private keys are compromised later, past communications remain secure\n");
-    } else {
-        printf("[ - ] Warning: Perfect Forward Secrecy (PFS) is NOT enabled!\n");
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // Display information about the peer's certificate
 void display_peer_cert(ssl_connection_t *conn) {
-    printf("\n---- Peer Certificate Information:\n");
 
     X509 *peer_cert = SSL_get1_peer_certificate(conn->ssl);
     if (!peer_cert) {
@@ -183,29 +171,53 @@ void display_peer_cert(ssl_connection_t *conn) {
         return;
     }
 
+    char country [256];
+    char cn[256];
+    char org[256];
+
+    // Common Name (CN)
+    int len = X509_NAME_get_text_by_NID(X509_get_subject_name(peer_cert), NID_commonName, cn, sizeof(cn));
+    printf("* Common Name (CN): %.*s\n\n", len, cn);
+
+    // Organization (O)
+    len = X509_NAME_get_text_by_NID(X509_get_subject_name(peer_cert), NID_organizationName, org, sizeof(org));
+    printf("* Organization (O): %.*s\n\n", len, org);
+
+    // Country (C)
+    len = X509_NAME_get_text_by_NID(X509_get_subject_name(peer_cert), NID_countryName, country, sizeof(country));
+    printf("* Country (C): %.*s\n\n", len, country);
+
+    // Not Before
+    const ASN1_TIME *notBefore = X509_get0_notBefore(peer_cert);
+    const ASN1_TIME *notAfter  = X509_get0_notAfter(peer_cert);
+    
+    BIO *bio = BIO_new(BIO_s_mem());
+    ASN1_TIME_print(bio, notBefore);
+    BUF_MEM *bptr;
+    BIO_get_mem_ptr(bio, &bptr);
+    printf("* Not Before: %.*s\n\n", (int)bptr->length, bptr->data);
+    BIO_free(bio);
+
+    bio = BIO_new(BIO_s_mem());
+    ASN1_TIME_print(bio, notAfter);
+    BIO_get_mem_ptr(bio, &bptr);
+    printf("* Not After:  %.*s\n\n\n", (int)bptr->length, bptr->data);
+    BIO_free(bio);
+    
     // Certificate subject (who the certificate is issued to)
-    char subject[512];
+    char subject[256];
     X509_NAME_oneline(X509_get_subject_name(peer_cert), subject, sizeof(subject));
-    printf("- Certificate Subject: %s\n", subject);
 
     // Certificate issuer (who issued the certificate)
-    char issuer [512];
+    char issuer [256];
     X509_NAME_oneline(X509_get_issuer_name(peer_cert), issuer, sizeof(issuer));
-    printf("- Certificate Issuer: %s\n", issuer);
 
     // Check if self-signed
     if (strcmp(subject, issuer) == 0) {
-        printf("  * Note: This is a self-signed certificate\n");
+        printf("[ i ] This is a self-signed certificate.\n\n");
     }
     else {
-        printf("  * Note: This certificate is issued by a CA\n");
-    }
-
-    // Check certificate validity
-    if (check_cert_validity(peer_cert) == 1) {
-        printf("[ + ] Certificate is valid\n");
-    } else {
-        printf("[ - ] Certificate is NOT valid\n");
+        printf("[ i ] This certificate is issued by a CA.\n\n");
     }
 
     X509_free(peer_cert);
@@ -217,7 +229,6 @@ void display_peer_cert(ssl_connection_t *conn) {
 int test_ssl_communication(ssl_connection_t *conn, int is_server) {
 
     if (is_server) {
-        printf("--- Testing as Server ---\n");
         printf("[...] Sending test message to client...\n");
         
         // Send a test message to the client
@@ -231,7 +242,7 @@ int test_ssl_communication(ssl_connection_t *conn, int is_server) {
             return 0;
         }
 
-        printf("- Sent encrypted message: \"%s\" (%d bytes)\n", test_msg, bytes_sent);
+        printf("\n      - Sent encrypted message: \"%s\" (%d bytes)\n\n", test_msg, bytes_sent);
 
         // Receive response from client
         char buffer[256];
@@ -244,10 +255,10 @@ int test_ssl_communication(ssl_connection_t *conn, int is_server) {
         }
 
         buffer[bytes_received] = '\0';  // Null-terminate the received data
-        printf("- Received encrypted response: \"%s\" (%d bytes)\n", buffer, bytes_received);
+        printf("      - Received encrypted response: \"%s\" (%d bytes)\n\n", buffer, bytes_received);
     }
     else {
-        printf("--- Testing as Client ---\n");
+        
         printf("[...] Receiving test message from server...\n");
 
         // Receive a test message from the server
@@ -261,7 +272,7 @@ int test_ssl_communication(ssl_connection_t *conn, int is_server) {
         }
 
         buffer[bytes_received] = '\0';  // Null-terminate the received data
-        printf("- Received encrypted message: \"%s\" (%d bytes)\n", buffer, bytes_received);
+        printf("\n      - Received encrypted message: \"%s\" (%d bytes)\n\n", buffer, bytes_received);
 
         // Send response back to server
         const char *response_msg = "Hello from the SSL client!";
@@ -274,11 +285,10 @@ int test_ssl_communication(ssl_connection_t *conn, int is_server) {
             return 0;
         }
 
-        printf("- Sent encrypted response: \"%s\" (%d bytes)\n", response_msg, bytes_sent);
+        printf("      - Sent encrypted response: \"%s\" (%d bytes)\n\n", response_msg, bytes_sent);
     }
 
-    printf("[ + ] SSL communication test completed successfully\n");
-    printf("- Data was encrypted with AES-256-CBC and authenticated with SHA-256\n");
+    printf("[ + ] SSL communication test completed successfully\n\n");
 
     return 1;
 }
@@ -293,7 +303,6 @@ void cleanup_ssl_connection(ssl_connection_t *conn) {
     }
 
     if (conn->ssl) {
-        printf("[...] Shutting down SSL connection...\n");
         
         // Perform two-phase shutdown
         int shutdown_result = SSL_shutdown(conn->ssl); // Send "close notify" alert to peer
@@ -301,26 +310,33 @@ void cleanup_ssl_connection(ssl_connection_t *conn) {
         // First shutdown phase
         if (shutdown_result == 0) {
             // First phase complete, perform second phase
-            printf("- First shutdown phase complete, performing second phase...\n");
-            shutdown_result = SSL_shutdown(conn->ssl);
+            printf("\n      [ + ] First shutdown phase complete, performing second phase...\n\n");
         }
+        else{
+            int ssl_error = SSL_get_error(conn->ssl, shutdown_result);
+            printf("[ - ] SSL_shutdown error during first phase: %d\n", ssl_error);
+            exit(1);
+        }
+        
+        shutdown_result = SSL_shutdown(conn->ssl);
         
         // Second shutdown phase
         if (shutdown_result < 0) {
             int ssl_error = SSL_get_error(conn->ssl, shutdown_result);
             printf("[ - ] SSL_shutdown error during second phase: %d\n", ssl_error);
+            exit(1);
         }
         else if (shutdown_result == 1) {
-            printf("[ + ] SSL connection shutdown completed successfully\n");
+            printf("      [ + ] Second shutdown phase complete, received close notify from peer.\n\n");
         }
 
+        printf("[ + ] SSL connection shutdown completed successfully\n");
+
         SSL_free(conn->ssl);
-        printf("- SSL object freed\n");
 
     }
     // Note: Do not close the socket here; it should be closed by the caller
     free(conn);
-    printf("[ + ] SSL connection cleaned up successfully\n");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

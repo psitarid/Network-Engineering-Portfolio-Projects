@@ -47,7 +47,7 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
 
     // If no valid certificate, create a new one along with keys.
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
-        printf("- Creating new server certificate and key...\n");
+        printf("[...] Creating new server certificate and key...\n");
         server_key = rsa_key_gen();                                                              // RSA key generation
         server_cert = X509_new();                                                                // create server certificate
         set_cert_version_and_serial(server_cert);                                                // set certificate version and serial number
@@ -123,10 +123,6 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
     printf("\n\n----------------------------- Handshake Information ------------------------------\n\n\n");
     print_handshake_info(ssl_conn);
     
-    // Verify the negotiated cipher suite
-    printf("\n\n---------------------------- Cipher Suite Verification ---------------------------\n\n\n");
-    verify_cipher_suite(ssl_conn);
-    
     // Display the peer (client) certificate information
     printf("\n\n-------------------------- Peer Certificate Information --------------------------\n\n\n");
     display_peer_cert(ssl_conn);
@@ -148,7 +144,8 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
     // receive_file(&connection_socket, "client_cert.pem");                                         // receive client certificate file
 
     // check_cert_validity(load_certificate("client_cert.pem"));                                    // check client certificate validity
-    printf("----------------------- Cleanup ----------------------\n\n");    
+    printf("\n\n------------------------------------- Cleanup ------------------------------------\n\n");    
+    
     cleanup_ssl_connection(ssl_conn);
     closesocket(connection_socket);                                                              // close the connection socket
     closesocket(listening_socket);                                                               // close the listening socket

@@ -76,13 +76,13 @@ SSL_CTX* create_server_context() {
     }
 
     SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);    
+    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);    
     
     const char *cipher_suites_1_2;
     const char *cipher_suites_1_3;
     
     cipher_suites_1_2 = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256";
-    cipher_suites_1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
+    cipher_suites_1_3 = "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256";
     
     if(SSL_CTX_set_cipher_list(ctx, cipher_suites_1_2) != 1) {
         print_ssl_error("[ - ]Failed to set cipher list");
@@ -95,12 +95,6 @@ SSL_CTX* create_server_context() {
         SSL_CTX_free(ctx);
         return NULL;
     }
-    
-    // // printf("    Cipher suite set to: %s\n", cipher_list);
-    // printf("      -> Key Exchange: ECDHE (automatic)\n");
-    // printf("      -> Authentication: RSA (from certificates)\n");
-    // printf("      -> Encryption: AES-256-GCM\n");
-    // printf("      -> Hash: SHA384\n");
 
     SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
     

@@ -229,15 +229,10 @@ void print_ssl_error(const char *msg) {
  * Cleanup OpenSSL library
  */
 void cleanup_openssl() {
-    printf("- Cleaning up OpenSSL...\n");
-    
     // Clean up error strings
     ERR_free_strings();
-    
     // Clean up algorithms
     EVP_cleanup();
-    
-    printf("    -> OpenSSL cleanup complete\n");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

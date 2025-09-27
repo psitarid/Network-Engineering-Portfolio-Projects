@@ -53,7 +53,7 @@ SSL_CTX* create_client_context() {
     const char *cipher_suites_1_3;
     
     cipher_suites_1_2 = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256";
-    cipher_suites_1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
+    cipher_suites_1_3 = "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256";
     
     if(SSL_CTX_set_cipher_list(ctx, cipher_suites_1_2) != 1) {
         print_ssl_error("[ - ]Failed to set cipher list");
