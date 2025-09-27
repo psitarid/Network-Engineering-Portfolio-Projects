@@ -80,7 +80,18 @@ EVP_PKEY* load_private_key(const char *filename) {
 
 // Function to check certificate validity
 int check_cert_validity(X509 *cert){
-    printf("\n[...] Checking certificate validity...\n");
+    
+    char cert_owner[512];
+    X509_NAME_oneline(X509_get_subject_name(cert), cert_owner, sizeof(cert_owner));
+
+    if (strstr(cert_owner, "server") || strstr(cert_owner, "Server")) {
+        printf("\n[...] Checking server certificate validity...\n");
+    } else if (strstr(cert_owner, "client") || strstr(cert_owner, "Client")) {
+        printf("\n[...] Checking client certificate validity...\n");
+    } else {
+        printf("\n[...] Checking certificate validity...\n");
+    }
+
     if (!cert) {                                                             // Check if certificate is NULL
         fprintf(stderr, "Certificate is NULL.\n");
         return 1;

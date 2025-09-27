@@ -3,7 +3,7 @@
 #include <string.h>
 #include <winsock2.h>
 #include "../common.h"
-#include "tcp_client.h"
+#include "client.h"
 #include "../cert_X509_pem.h"
 #include "../tls_handshake.h"
 #include <openssl/ssl.h>
@@ -75,13 +75,11 @@ int main(int argc, char *argv[]) {                                              
 
 
 // PHASE 3: SSL/TLS Setup and Secure Communication
-    printf("\n\n---------------------- SSL/TLS Setup and Secure Communication ----------------------\n\n");
+    printf("\n\n--------------------- SSL/TLS Setup and Secure Communication ---------------------\n\n\n");
     initialize_openssl();                                                                        // initialize OpenSSL library
     SSL_CTX *ssl_ctx = create_client_context();                                                  // create SSL context
     configure_client_context(ssl_ctx, "client_cert.pem", "client_key.pem");                      // configure the client context with certificate and key
-
-// PHASE 4: TLS Handshake and Secure Data Exchange
-    printf("\n\n---------------------- TLS Handshake and Secure Data Exchange ----------------------\n\n");    
+    
     // Create SSL connection object
     ssl_connection_t *ssl_conn;
     ssl_conn = create_ssl_connection(ssl_ctx, client_socket);   
@@ -91,9 +89,11 @@ int main(int argc, char *argv[]) {                                              
         SSL_CTX_free(ssl_ctx);
         cleanup_openssl();
         WSACleanup();
+
     }
-    client_handshake(ssl_conn);
+// PHASE 4: TLS Handshake and Secure Data Exchange
     // Perform TLS handshake as client
+    printf("\n\n--------------------- TLS Handshake and Secure Data Exchange ---------------------\n\n\n");
     if(client_handshake(ssl_conn) <= 0) {                                                                   // perform TLS handshake as client
         printf("[ - ] TLS handshake failed\n");
         SSL_free(ssl_conn->ssl);
@@ -104,12 +104,20 @@ int main(int argc, char *argv[]) {                                              
         WSACleanup();
     }
 
-    // Display connection information
+    // Print detailed handshake information
+    printf("\n\n----------------------------- Handshake Information ------------------------------\n\n\n");
     print_handshake_info(ssl_conn);                                                              // print detailed handshake information
+
+    // Verify the negotiated cipher suite
+    printf("\n\n---------------------------- Cipher Suite Verification ---------------------------\n\n\n");
     verify_cipher_suite(ssl_conn);
+    
+    // Display the peer (server) certificate information
+    printf("\n\n-------------------------- Peer Certificate Information --------------------------\n\n\n");
     display_peer_cert(ssl_conn);
 
     // Test SSL communication
+    printf("\n\n------------------------- Testing Encrypted Communication -------------------------\n\n\n");
     if (!test_ssl_communication(ssl_conn, 0)) {                                                  // test SSL
         printf("[ - ]SSL communication test failed\n");
     }

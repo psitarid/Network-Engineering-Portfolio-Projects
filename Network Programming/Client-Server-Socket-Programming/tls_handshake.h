@@ -42,7 +42,7 @@ ssl_connection_t* create_ssl_connection(SSL_CTX *ctx, SOCKET socket) {
         return NULL;
     }
 
-    printf("[ + ] SSL object created successfully\n");
+    printf("[ + ] SSL object created successfully\n\n");
 
     // Associate SSL object with the socket file descriptor
     // This tells OpenSSL to use you socket for network I/O
@@ -55,7 +55,7 @@ ssl_connection_t* create_ssl_connection(SSL_CTX *ctx, SOCKET socket) {
         return NULL;
     }
 
-    printf("[ + ] SSL object associated successfully with socket (fd: %d)\n", socket);
+    printf("[ + ] SSL object associated successfully with socket (fd: %d)\n\n", socket);
     printf("[ + ] SSL connection object ready for handshake\n\n");
 
     return conn;
@@ -65,34 +65,46 @@ ssl_connection_t* create_ssl_connection(SSL_CTX *ctx, SOCKET socket) {
 
 // Print detailed information about the completed handshake
 void print_handshake_info(ssl_connection_t *conn) {
-    printf("--- Handshake Information:\n");
-
-    // Protocol version
-    const char *version = SSL_get_version(conn->ssl);
-    printf("- TLS Protocol Version: %s\n", version ? version : "Unknown");
-
-    // Negotiated cipher suite
-    const char *cipher = SSL_get_cipher(conn->ssl);
-    printf("- Negotiated Cipher Suite: %s\n", cipher ? cipher : "Unknown");
-
-    // Verify this matches your expected cipher suite
-    if (cipher && strstr(cipher, "TLS_AES_256_GCM_SHA384")) {
-        printf("[ + ] Cipher suite matches expected value: %s\n", cipher);
-
-    } else {
-        printf("[ - ] Warning: Cipher suite does not match expected value!\n");
-        printf("    Expected: TLS_AES_256_GCM_SHA384\n");
-        printf("    Got: %s\n", cipher ? cipher : "Unknown");
-    }
 
     // Connection state
     int state = SSL_get_state(conn->ssl);
-    printf("- SSL Connection State: %s\n", SSL_state_string_long(conn->ssl));
+    printf("[ + ] %s\n\n", SSL_state_string_long(conn->ssl));
+    
+    const SSL_CIPHER *cipher = SSL_get_current_cipher(conn->ssl);
+    
+    // Negotiated cipher suite
+    const char *cipher_suite_name = SSL_get_cipher(conn->ssl);
+    printf("Negotiated Cipher Suite: %s\n\n", cipher_suite_name ? cipher_suite_name : "Unknown");
 
+    // Protocol version
+    const char *version = SSL_get_version(conn->ssl);
+    printf("* TLS Protocol Version: %s\n", version ? version : "Unknown");
 
-    // Security level information
-    int security_bits = SSL_get_cipher_bits(conn->ssl, NULL);
-    printf("- Security Level: %d bits\n", security_bits);
+    
+    // Key exchange algorithm
+    if (strcmp(version, "TLSv1.3") == 0) {
+        printf("* Key Exchange Algorithm: ECDHE (TLS 1.3 default)\n");
+    } else if (strcmp(version, "TLSv1.2") == 0) {
+        int kx_nid = SSL_CIPHER_get_kx_nid(cipher);
+        const char *kx_name = kx_nid ? OBJ_nid2sn(kx_nid) : "Unknown";
+        kx_name += 2; // skip "Kx"
+        
+        printf("* Key Exchange Algorithm: %s\n", kx_name);
+    }
+
+    // Bulk encryption algorithm
+    int enc_nid = SSL_CIPHER_get_cipher_nid(cipher);
+    const char *enc_name = enc_nid ? OBJ_nid2sn(enc_nid) : "Unknown";
+    enc_name += 3; // skip "id-"
+    
+    printf("* Bulk Encryption: %s\n", enc_name);
+
+    // HMAC algorithm
+    const EVP_MD *md = SSL_CIPHER_get_handshake_digest(cipher);
+    const char *hmac_name = md ? EVP_MD_name(md) : "Unknown";
+    // hmac_name += 3; // skip "id-"    
+
+    printf("* HMAC Algorithm: %s\n", hmac_name);
 
     // Session information
     SSL_SESSION *session = SSL_get_session(conn->ssl);
@@ -104,10 +116,10 @@ void print_handshake_info(ssl_connection_t *conn) {
 
     // Check if session is resumable
     if(SSL_SESSION_is_resumable(session)) {
-        printf(" [ + ] Session is resumable\n");
+        printf("[ + ] Session is resumable\n");
     }
     else {
-        printf(" [ - ] Session is not resumable\n");
+        printf("[ - ] Session is not resumable\n");
     }
 }
 
@@ -132,7 +144,13 @@ void verify_cipher_suite(ssl_connection_t *conn) {
     printf("- Cipher Description: %s\n", cipher_description);
 
     // Verify key exchange algorithm
-    const char *kx_name = SSL_CIPHER_get_kx_nid(cipher) ? "DHE" : "Unknown";
+    int kx_nid = SSL_CIPHER_get_kx_nid(cipher);
+    const char *kx_name = kx_nid ? OBJ_nid2sn(kx_nid) : "Unknown";
+    
+    if (kx_name && strncmp(kx_name, "Kx", 2) == 0) {
+    kx_name += 2; // skip "Kx"
+    }
+
     printf("- Key Exchange: %s\n", kx_name);
 
     // Verify authentication algorithm
@@ -197,7 +215,6 @@ void display_peer_cert(ssl_connection_t *conn) {
 
 // Test basic SSL communication to verify the connection works
 int test_ssl_communication(ssl_connection_t *conn, int is_server) {
-    printf("\n---- SSL communication Test\n");
 
     if (is_server) {
         printf("--- Testing as Server ---\n");

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
-#include "tcp_server.h"
+#include "server.h"
 #include "../common.h"
 #include "../cert_X509_pem.h"
 #include "../tls_handshake.h"
@@ -31,8 +31,8 @@
 int main() {
 
 // PHASE 1: Certificate and Key Generation
-
 printf("\n\n------------------------- Key and Certificate Generation -------------------------\n\n\n");
+    
     // Key and Certificate initialization
     EVP_PKEY *server_key;
     X509 *server_cert;
@@ -44,6 +44,7 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
         server_key = load_private_key("server_key.pem");                                         // load existing server private key
         cert_validity = check_cert_validity(server_cert);                                        // check certificate validity
     }
+
     // If no valid certificate, create a new one along with keys.
     if ((cert_validity == 0)) {                                                                  // if certificate does not exist or is invalid, create a new one along with keys.
         printf("- Creating new server certificate and key...\n");
@@ -65,10 +66,11 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
     WSADATA wsa;
     winsock_init(&wsa);                                                                          // initialize winsock and check for errors
 
-    // 
-    SOCKET connection_socket;                                                                    // create connection socket
-    struct sockaddr_in connection_address;                                                       // create connection address
+    // Create connection socket
+    SOCKET connection_socket;
+    struct sockaddr_in connection_address;
 
+    // Create listening socket and bind it to an IP/port
     struct sockaddr_in listening_address;                                                        // create listening address
     char listening_ip[] = "192.168.1.3";                                                     
     char address_type[] = "IPv4";
@@ -86,16 +88,12 @@ printf("\n\n------------------------- Key and Certificate Generation -----------
     accept_socket(&connection_socket, connection_address, listening_socket);                     // accept a client connection
 
 //PHASE 3: SSL/TLS Setup and Secure Communication
-
-printf("\n\n--------------------- SSL/TLS Setup and Secure Communication ---------------------\n\n\n");
+    printf("\n\n--------------------- SSL/TLS Setup and Secure Communication ---------------------\n\n\n");
     // Initialize OpenSSL library and create SSL context
     initialize_openssl();                                                                        // initialize OpenSSL library                     
     SSL_CTX *ssl_ctx = create_server_context();                                                  // create SSL context 
     configure_server_context(ssl_ctx, "server_cert.pem", "server_key.pem");                      // configure the server context with certificate and key    
 
-// PHASE 4: TLS Handshake and Secure Data Exchange
-
-printf(" ------------------------- TLS Handshake and Secure Data Exchange  ------------------------\n\n");
     // Create SSL connection object
     ssl_connection_t *ssl_conn = create_ssl_connection(ssl_ctx, connection_socket);              // create SSL connection object
     if (!ssl_conn) {
@@ -107,8 +105,9 @@ printf(" ------------------------- TLS Handshake and Secure Data Exchange  -----
     WSACleanup();
     return 1;
     }
-
+// PHASE 4: TLS Handshake and Secure Data Exchange
     // Perform server handshake                                                                // perform TLS handshake as server
+    printf("\n\n----------------------- TLS Handshake and Secure Data Exchange ----------------------\n\n\n");
     if (!server_handshake(ssl_conn)) {
     printf("TLS handshake failed\n");
     cleanup_ssl_connection(ssl_conn);
@@ -121,11 +120,19 @@ printf(" ------------------------- TLS Handshake and Secure Data Exchange  -----
     }
 
     // Display connection information
+    printf("\n\n----------------------------- Handshake Information ------------------------------\n\n\n");
     print_handshake_info(ssl_conn);
+    
+    // Verify the negotiated cipher suite
+    printf("\n\n---------------------------- Cipher Suite Verification ---------------------------\n\n\n");
     verify_cipher_suite(ssl_conn);
+    
+    // Display the peer (client) certificate information
+    printf("\n\n-------------------------- Peer Certificate Information --------------------------\n\n\n");
     display_peer_cert(ssl_conn);
 
     // Test the secure connection by sending and receiving messages
+    printf("\n\n------------------------ Testing Encrypted Communication -------------------------\n\n\n");
     if (!test_ssl_communication(ssl_conn, 1)) {  // 1 = server mode
     printf("SSL communication test failed\n");
     }
@@ -141,7 +148,7 @@ printf(" ------------------------- TLS Handshake and Secure Data Exchange  -----
     // receive_file(&connection_socket, "client_cert.pem");                                         // receive client certificate file
 
     // check_cert_validity(load_certificate("client_cert.pem"));                                    // check client certificate validity
-printf("----------------------- Cleanup ----------------------\n\n");    
+    printf("----------------------- Cleanup ----------------------\n\n");    
     cleanup_ssl_connection(ssl_conn);
     closesocket(connection_socket);                                                              // close the connection socket
     closesocket(listening_socket);                                                               // close the listening socket

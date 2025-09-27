@@ -31,7 +31,7 @@ void connect_to_server(SOCKET client_socket, struct sockaddr *server_address) {
  * Create and configure SSL context for client
  */
 SSL_CTX* create_client_context() {
-    
+    printf("[...] Creating client SSL context...\n");
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
@@ -45,23 +45,34 @@ SSL_CTX* create_client_context() {
         return NULL;
     }
     
-    // Set minimum protocol version to TLS 1.2
     SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+    SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
     
     // Set the same cipher suite preference
-    const char *cipher_list = "DHE-RSA-AES256-SHA256";
-    if (SSL_CTX_set_cipher_list(ctx, cipher_list) != 1) {
+    const char *cipher_suites_1_2;
+    const char *cipher_suites_1_3;
+    
+    cipher_suites_1_2 = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256";
+    cipher_suites_1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
+    
+    if(SSL_CTX_set_cipher_list(ctx, cipher_suites_1_2) != 1) {
         print_ssl_error("[ - ]Failed to set cipher list");
         SSL_CTX_free(ctx);
         return NULL;
     }
     
-    printf("Cipher suite preference set to: %s\n", cipher_list);
-    printf("  -> Key Exchange: DHE\n");
-    printf("  -> Authentication: RSA\n");
-    printf("  -> Bulk Encryption: AES-256-CBC\n");
-    printf("  -> MAC: SHA-256\n\n");
+    if (SSL_CTX_set_ciphersuites(ctx, cipher_suites_1_3) != 1) {
+        print_ssl_error("[ - ]Failed to set cipher list");
+        SSL_CTX_free(ctx);
+        return NULL;
+    }
     
+    // // printf("Cipher suite set to: %s\n", cipher_list);
+    // printf("      -> Key Exchange: ECDHE (automatic)\n");
+    // printf("      -> Authentication: RSA (from certificates)\n");
+    // printf("      -> Encryption: AES-256-GCM\n");
+    // printf("      -> Hash: SHA384\n");
+
     // For testing with self-signed certificates, we'll disable peer verification
     // In production, you'd want to properly verify the peer certificate
     SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, verify_callback);
@@ -76,32 +87,30 @@ SSL_CTX* create_client_context() {
 /**
  * Configure client context with certificate and private key
  */
-void configure_client_context(SSL_CTX *ctx, const char *cert_file, const char *key_file) {
+void configure_client_context(SSL_CTX *ctx, const char *client_cert, const char *client_key) {
     printf("[...] Configuring client context with certificates...\n");
     
     // Load client certificate into the context
-    if (SSL_CTX_use_certificate_file(ctx, cert_file, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_certificate_file(ctx, client_cert, SSL_FILETYPE_PEM) <= 0) {
         print_ssl_error("Failed to load client certificate");
         exit(1);
     }
-    printf("  -> Client certificate loaded: %s\n", cert_file);
-    
+    printf("      -> Client certificate loaded: %s\n", client_cert);
+
     // Load client private key into the context
-    if (SSL_CTX_use_PrivateKey_file(ctx, key_file, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_PrivateKey_file(ctx, client_key, SSL_FILETYPE_PEM) <= 0) {
         print_ssl_error("Failed to load client private key");
         exit(1);
     }
-    printf("  -> Client private key loaded: %s\n", key_file);
-    
+    printf("      -> Client private key loaded: %s\n", client_key);
+
     // Verify that the private key matches the certificate
     if (!SSL_CTX_check_private_key(ctx)) {
         printf("Private key does not match the certificate public key\n");
         exit(1);
     }
-    else {
-        printf("    -> Private key matches certificate\n");
-    }
-        
+    printf("      -> Private key matches certificate\n");    
+    
     printf("[ + ] Client context configuration complete\n\n");
 }
 
