@@ -1,81 +1,110 @@
+/* tcp_server.c
+ *
+ * TLS 1.2 server (DHE-RSA-AES256-SHA256, mutual authentication).
+ *
+ *   PHASE 1: load the server certificate, private key and the trusted CA
+ *   PHASE 2: listen on TCP, accept clients one at a time
+ *   PHASE 3: run the TLS handshake (the client must present a CA-signed certificate)
+ *   PHASE 4: exchange encrypted messages until the client closes the session
+ *
+ * Usage: tcp_server [bind_ip] [port]        (defaults: 0.0.0.0 9002)
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <winsock2.h>
-#include "tcp_server.h"
-#include "common.h"
+#ifndef _WIN32
+#include <signal.h>
+#endif
+#include <openssl/x509.h>
+#include <openssl/evp.h>
+#include "net.h"
 #include "cert_509X.h"
-#include <openssl/x509.h>    // X.509 certificate structures and functions
-#include <openssl/pem.h>      // PEM format encoding/decoding
-#include <openssl/rsa.h>     // RSA key generation and operations
-#include <openssl/evp.h>     // High-level cryptographic functions
-#include <openssl/bn.h>      // Big number arithmetic
+#include "tls.h"
 
-#pragma comment(lib, "ws2_32.lib")                                                          // link with Winsock library
+#ifdef _MSC_VER
+#pragma comment(lib, "ws2_32.lib")
+#endif
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE TLS_MAX_PLAINTEXT
 
-/* tcp_server.c
- * 
+static void serve_client(socket_t connection_socket, X509 *cert, EVP_PKEY *key, X509 *ca) {
+    tls_session tls;
+    tls_init(&tls, connection_socket, TLS_ROLE_SERVER, cert, key, ca, NULL);
 
- * This file implements a simple TCP server using Winsock on Windows.
- * The server listens for incoming client connections, receives a message,
- * and responds with a predefined message. It demonstrates basic socket
- * programming concepts such as socket creation, binding, listening,
- * accepting connections, and sending/receiving data.
- */
+    if (tls_handshake(&tls) != 0) {
+        printf("- Handshake failed, dropping the connection.\n");
+        tls_free(&tls);
+        return;
+    }
 
+    char client_message[BUFFER_SIZE + 1];
+    char server_message[BUFFER_SIZE + 64];
+    int n;
+    while ((n = tls_read(&tls, client_message, BUFFER_SIZE)) > 0) {      // receive (decrypt) from client
+        client_message[n] = '\0';
+        printf("- Received message: %s\n", client_message);
 
+        if (strcmp(client_message, "Is anyone there?") == 0)
+            snprintf(server_message, sizeof(server_message), "You have reached the server!");
+        else
+            snprintf(server_message, sizeof(server_message), "Server received: %s", client_message);
 
-int main() {
-    
+        if (tls_write(&tls, server_message, strlen(server_message)) != 0) break;   // send (encrypt) reply
+        printf("- Message sent.\n");
+    }
+    if (n == 0) printf("- Client closed the session (close_notify).\n");
+    tls_close(&tls);
+    tls_free(&tls);
+}
 
-// PHASE 1: Key Generation and Certificate Creation
-    EVP_PKEY *server_key = rsa_key_gen();                                                        // RSA key generation
-    
-    X509 *server_cert = X509_new();                                                              // create server certificate
-    set_cert_version_and_serial(server_cert);                                                   // set certificate version and serial number
-    set_cert_names(server_cert);                                                                // set certificate details
-    X509_set_pubkey(server_cert, server_key);                                                    // assign server public key to the certificate
-    X509_sign(server_cert, server_key, EVP_sha256());                                            // sign the server certificate
+int main(int argc, char *argv[]) {
+    const char *listening_ip = argc > 1 ? argv[1] : "0.0.0.0";
+    int listening_port = argc > 2 ? atoi(argv[2]) : DEFAULT_PORT;
+#ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);                                             // a dropped client must not kill the server
+#endif
 
-    output_cert("server_cert.pem", server_cert);                                                 // output the server certificate to a file
-    output_private_key("server_key.pem", server_key);                                            // output the server private key to a file
+    setvbuf(stdout, NULL, _IONBF, 0);                                     // show output immediately
 
-// PHASE 2: COMMUNICATION WITH CLIENT
-    WSADATA wsa;
-    winsock_init(&wsa);                                                                          // initialize winsock and check for errors
+// PHASE 1: Certificates
+    X509 *ca_cert = load_cert("ca_cert.pem");
+    X509 *server_cert = load_cert("server_cert.pem");
+    EVP_PKEY *server_key = load_private_key("server_key.pem");
+    if (!ca_cert || !server_cert || !server_key) {
+        fprintf(stderr, "Missing certificates. Run `certgen` first.\n");
+        return 1;
+    }
+    if (X509_check_private_key(server_cert, server_key) != 1) {
+        fprintf(stderr, "server_key.pem does not match server_cert.pem\n");
+        return 1;
+    }
+    printf("- Loaded certificates:\n");
+    print_cert_summary("Server certificate", server_cert);
 
-    SOCKET connection_socket;                                                                    // create connection socket
-    struct sockaddr_in connection_address;                                                       // create connection address
+// PHASE 2: TCP
+    net_init();
+    struct sockaddr_in listening_address;
+    server_address_constructor(&listening_address, listening_ip, listening_port);
 
-    struct sockaddr_in listening_address;                                                        // create listening address
-    char listening_ip[] = "111.111.111.111";                                                     
-    char address_type[] = "IPv4";
-    int listening_port = 9002;
-    
-    server_address_constructor(&listening_address, listening_ip, address_type, listening_port);  // setup listening address
- 
-    char client_message[BUFFER_SIZE];                                                            // buffer for the client message
-    char server_message[BUFFER_SIZE] = "You have reached the server!";                           // message for the client
+    socket_t listening_socket = create_tcp_socket();
+    bind_socket(listening_socket, &listening_address);
+    listen_for_client(listening_socket);
+    printf("- Listening on %s:%d (Ctrl+C to stop)\n", listening_ip, listening_port);
 
-    SOCKET listening_socket = socket(AF_INET, SOCK_STREAM, 0);                                   // create listening socket
-    check_socket_creation(listening_socket);                                                     // check for listening socket errors
-    
-    bind_socket(listening_socket, listening_address);                                            // bind the listening socket
+// PHASE 3 + 4: TLS session per client
+    for (;;) {
+        struct sockaddr_in connection_address;
+        socket_t connection_socket = accept_socket(listening_socket, &connection_address);
+        serve_client(connection_socket, server_cert, server_key, ca_cert);
+        net_close(connection_socket);
+        printf("- Connection closed. Waiting for the next client...\n\n");
+    }
 
-    listen_for_client(listening_socket);                                                         // listen for incoming connections
-
-    accept_socket(&connection_socket, connection_address, listening_socket);                     // accept a client connection
-
-    receive_message(&connection_socket, client_message, BUFFER_SIZE);                            // receive message from client
-
-    send_message(&connection_socket, server_message, BUFFER_SIZE);                               // send message to client
-
-    closesocket(listening_socket);                                                               // close the listening socket
-    WSACleanup();
-    X509_free(server_cert);                                                                      // free the server certificate
-    EVP_PKEY_free(server_key);                                                                   // free the server private key
-
+    // not reached
+    net_close(listening_socket);
+    net_cleanup();
+    X509_free(server_cert);
+    X509_free(ca_cert);
+    EVP_PKEY_free(server_key);
     return 0;
 }

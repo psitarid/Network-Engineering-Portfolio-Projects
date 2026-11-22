@@ -1,0 +1,9 @@
+# build output
+*.o
+*.exe
+certgen
+tcp_server
+tcp_client
+
+# generated keys and certificates - never commit private keys
+*.pem
